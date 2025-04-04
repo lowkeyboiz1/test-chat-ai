@@ -1,103 +1,137 @@
-import Image from "next/image";
+"use client"
+import { ChatArea } from "@/components/chat/ChatArea"
+import { ChatSidebar } from "@/components/sidebar/ChatSidebar"
+import { NavigationSidebar } from "@/components/sidebar/NavigationSidebar"
+import { RightSidebar } from "@/components/sidebar/RightSidebar"
+import { CropData, LandPlot, Message, WeatherData } from "@/types"
+import { aiResponses, landPlots } from "@/utils/mockData"
+import * as echarts from "echarts"
+import React, { useEffect, useRef, useState } from "react"
 
-export default function Home() {
+const App: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      text: "Xin chào Anh Tuấn! Tôi là Đom Đóm AI, trợ lý cá nhân của anh. Hôm nay tôi có thể giúp gì cho anh về vụ lúa mùa thu?",
+      sender: "ai",
+      timestamp: new Date(),
+    },
+  ])
+  const [inputValue, setInputValue] = useState("")
+  const [isRecording, setIsRecording] = useState(false)
+  const [weather, setWeather] = useState<WeatherData>({
+    temp: 28,
+    condition: "Nắng nhẹ",
+    icon: "sun",
+  })
+  const [intimacyLevel, setIntimacyLevel] = useState(67)
+  const [isTyping, setIsTyping] = useState(false)
+  const [cropDetailOpen, setCropDetailOpen] = useState(false)
+  const [selectedCrop, setSelectedCrop] = useState<CropData | null>(null)
+  const [selectedPlot, setSelectedPlot] = useState<LandPlot | null>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const cropDataRef = useRef<HTMLDivElement>(null)
+
+  // Chart initialization code...
+  useEffect(() => {
+    if (chartRef.current) {
+      const chart = echarts.init(chartRef.current)
+      const option = {
+        // Chart options...
+      }
+      chart.setOption(option)
+      const handleResize = () => {
+        chart.resize()
+      }
+      window.addEventListener("resize", handleResize)
+      return () => {
+        chart.dispose()
+        window.removeEventListener("resize", handleResize)
+      }
+    }
+  }, [])
+
+  // Crop data chart initialization...
+  useEffect(() => {
+    if (cropDataRef.current) {
+      // Chart initialization code...
+    }
+  }, [landPlots])
+
+  const handleSendMessage = () => {
+    if (inputValue.trim() === "") return
+    const newUserMessage: Message = {
+      id: messages.length + 1,
+      text: inputValue,
+      sender: "user",
+      timestamp: new Date(),
+    }
+    setMessages([...messages, newUserMessage])
+    setInputValue("")
+    setIsTyping(true)
+
+    // Simulate AI response
+    setTimeout(() => {
+      const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)]
+      const newAiMessage: Message = {
+        id: messages.length + 2,
+        text: randomResponse,
+        sender: "ai",
+        timestamp: new Date(),
+      }
+      setMessages((prevMessages) => [...prevMessages, newAiMessage])
+      setIsTyping(false)
+      setIntimacyLevel((prev) => Math.min(prev + 2, 100))
+    }, 1500)
+  }
+
+  const toggleRecording = () => {
+    setIsRecording(!isRecording)
+    if (!isRecording) {
+      // Simulate voice recording
+      setTimeout(() => {
+        setInputValue("Làm thế nào để phòng trừ sâu đục thân trên cây lúa?")
+        setIsRecording(false)
+      }, 3000)
+    } else {
+      setInputValue("")
+    }
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <NavigationSidebar />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="flex flex-1">
+        {/* Chat List Sidebar */}
+        <ChatSidebar messages={messages} weather={weather} />
+
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col">
+          <ChatArea
+            messages={messages}
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            isTyping={isTyping}
+            isRecording={isRecording}
+            handleSendMessage={handleSendMessage}
+            toggleRecording={toggleRecording}
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Right Sidebar - Info Panel */}
+        <RightSidebar
+          intimacyLevel={intimacyLevel}
+          landPlots={landPlots}
+          chartRef={chartRef as any}
+          setCropDetailOpen={setCropDetailOpen}
+          setSelectedCrop={setSelectedCrop}
+          setSelectedPlot={setSelectedPlot}
+        />
+      </div>
     </div>
-  );
+  )
 }
+
+export default App
