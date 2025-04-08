@@ -1,27 +1,28 @@
-export interface Message {
+export type TMessage = {
   id: number
   text: string
-  sender: "user" | "ai"
+  sender: 'user' | 'ai'
   timestamp: Date
+  weatherData?: any
 }
 
-export interface WeatherData {
+export type TWeatherData = {
   temp: number
   condition: string
   icon: string
 }
 
-export interface CropData {
+export type TCropData = {
   name: string
   progress: number
   nextAction: string
   daysRemaining: number
 }
 
-export interface LandPlot {
+export type TLandPlot = {
   id: string
   name: string
   area: string
   location: string
-  crops: CropData[]
+  crops: ICropData[]
 }

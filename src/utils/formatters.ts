@@ -2,7 +2,10 @@ import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 
 export function formatTime(date: Date): string {
-  return format(date, "HH:mm")
+  if (date) {
+    return format(date, "HH:mm")
+  }
+  return ""
 }
 
 export const formatDate = () => {
