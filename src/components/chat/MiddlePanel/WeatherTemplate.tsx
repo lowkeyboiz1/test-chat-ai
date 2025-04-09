@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Cloud, CloudSun, Droplets, Sun, Wind, Thermometer, MapPin, Clock, RefreshCw, Maximize2 } from 'lucide-react'
+import { Clock, Cloud, CloudSun, Droplets, MapPin, Sun, Wind } from 'lucide-react'
+import React, { useEffect, useState, useMemo } from 'react'
 
 interface ForecastDay {
   day: string
-  temperature: number
+  temperature: number | null
   condition: string
 }
 
@@ -20,190 +20,171 @@ interface WeatherData {
   forecast: ForecastDay[]
 }
 
-const WeatherTemplate: React.FC<{ weatherData?: WeatherData }> = ({
-  weatherData = {
-    location: 'Hà Nội',
-    date: 'Thứ Năm, 03/04/2025',
-    time: '15:30',
-    temperature: 27,
-    condition: 'Mây rải rác',
-    humidity: 75,
-    windSpeed: 12,
-    forecast: [
-      { day: 'Thứ Sáu', temperature: 26, condition: 'cloudy' },
-      { day: 'Thứ Bảy', temperature: 27, condition: 'partly_cloudy' },
-      { day: 'Chủ Nhật', temperature: 28, condition: 'sunny' }
-    ]
+const DEFAULT_WEATHER_DATA: WeatherData = {
+  location: 'Hà Nội',
+  date: 'Thứ Năm, 03/04/2025',
+  time: '15:30',
+  temperature: 27,
+  condition: 'Mây rải rác',
+  humidity: 75,
+  windSpeed: 12,
+  forecast: [
+    { day: 'Thứ Sáu', temperature: 26, condition: 'cloudy' },
+    { day: 'Thứ Bảy', temperature: 27, condition: 'partly_cloudy' },
+    { day: 'Chủ Nhật', temperature: 28, condition: 'sunny' }
+  ]
+}
+
+// Weather icon components to avoid recreating on each render
+const WeatherIcon = React.memo(({ condition, size = 'small' }: { condition: string; size?: 'small' | 'large' }) => {
+  const iconProps = size === 'large' ? { className: 'h-16 w-16 text-cyan-200' } : { className: 'h-6 w-6 text-cyan-200' }
+
+  switch (condition) {
+    case 'sunny':
+      return <Sun {...{ ...iconProps, className: iconProps.className.replace('text-cyan-200', 'text-yellow-300') }} />
+    case 'partly_cloudy':
+      return <CloudSun {...iconProps} />
+    case 'cloudy':
+      return <Cloud {...iconProps} />
+    case 'rainy':
+      return <Droplets {...iconProps} />
+    case 'windy':
+      return <Wind {...iconProps} />
+    default:
+      return <CloudSun {...iconProps} />
   }
-}) => {
+})
+
+WeatherIcon.displayName = 'WeatherIcon'
+
+const WeatherTemplate: React.FC<{ weatherData?: WeatherData; isLoading?: boolean }> = ({ weatherData = DEFAULT_WEATHER_DATA }) => {
   const [loaded, setLoaded] = useState(false)
-  const [scanning, setScanning] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
 
-  // Function to determine weather icon based on condition
-  const getWeatherIcon = (condition: string) => {
-    switch (condition) {
-      case 'sunny':
-        return <Sun className='h-6 w-6 text-yellow-300' />
-      case 'partly_cloudy':
-        return <CloudSun className='h-6 w-6 text-cyan-200' />
-      case 'cloudy':
-        return <Cloud className='h-6 w-6 text-cyan-200' />
-      case 'rainy':
-        return <Droplets className='h-6 w-6 text-cyan-200' />
-      case 'windy':
-        return <Wind className='h-6 w-6 text-cyan-200' />
-      default:
-        return <CloudSun className='h-6 w-6 text-cyan-200' />
-    }
-  }
+  // Determine main condition icon only when weatherData changes
+  const mainConditionType = useMemo(() => {
+    const condition = weatherData.condition?.toLowerCase() || ''
+    if (condition.includes('mây')) return 'partly_cloudy'
+    if (condition.includes('mưa')) return 'rainy'
+    if (condition.includes('nắng')) return 'sunny'
+    return 'partly_cloudy'
+  }, [weatherData.condition])
 
-  // Get main weather icon with larger size
-  const getMainWeatherIcon = (condition: string) => {
-    switch (condition) {
-      case 'sunny':
-        return <Sun className='h-16 w-16 text-yellow-300' />
-      case 'partly_cloudy':
-        return <CloudSun className='h-16 w-16 text-cyan-200' />
-      case 'cloudy':
-        return <Cloud className='h-16 w-16 text-cyan-200' />
-      case 'rainy':
-        return <Droplets className='h-16 w-16 text-cyan-200' />
-      case 'windy':
-        return <Wind className='h-16 w-16 text-cyan-200' />
-      default:
-        return <CloudSun className='h-16 w-16 text-cyan-200' />
-    }
-  }
-
-  // Determine main condition icon
-  const mainConditionType = weatherData.condition?.toLowerCase().includes('mây')
-    ? 'partly_cloudy'
-    : weatherData.condition?.toLowerCase().includes('mưa')
-      ? 'rainy'
-      : weatherData.condition?.toLowerCase().includes('nắng')
-        ? 'sunny'
-        : 'partly_cloudy'
-
-  // Simulate loading sequence
+  // Simplified loading sequence
   useEffect(() => {
-    const timer1 = setTimeout(() => setLoaded(true), 500)
-    const timer2 = setTimeout(() => setScanning(true), 1500)
-    const timer3 = setTimeout(() => setShowDetails(true), 2500)
+    const loadTimer = setTimeout(() => setLoaded(true), 300)
+    const detailsTimer = setTimeout(() => setShowDetails(true), 600)
 
     return () => {
-      clearTimeout(timer1)
-      clearTimeout(timer2)
-      clearTimeout(timer3)
+      clearTimeout(loadTimer)
+      clearTimeout(detailsTimer)
     }
   }, [])
 
-  return (
-    <div className='perspective-1000 flex min-h-[500px] w-full items-center justify-center rounded-3xl bg-gradient-to-b from-cyan-950 to-slate-950 p-6'>
-      <div className='relative w-full max-w-md transform-gpu transition-all duration-300'>
-        {/* Background elements */}
-        <div className='absolute inset-0 -z-10'>
-          <div className='absolute top-0 left-1/2 h-40 w-full -translate-x-1/2 rounded-full bg-cyan-500 opacity-20 blur-[100px]'></div>
-          <div className='absolute bottom-0 left-1/2 h-40 w-full -translate-x-1/2 rounded-full bg-purple-500 opacity-20 blur-[100px]'></div>
+  // Memoize forecast items to prevent unnecessary re-renders
+  const forecastItems = useMemo(() => {
+    return weatherData.forecast.map((day, index) => (
+      <div
+        key={index}
+        className={`rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-2 transition-all duration-300 hover:border-cyan-400/40 hover:bg-cyan-900/30 sm:p-3 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
+        style={{ transitionDelay: `${300 + index * 100}ms` }}
+      >
+        <div className='flex flex-col items-center'>
+          <div className='mb-1 text-xs font-medium text-cyan-100 sm:mb-2 sm:text-sm'>{day.day}</div>
+          <div className='my-1 flex justify-center sm:my-2'>
+            <div className='scale-75 sm:scale-100'>
+              <WeatherIcon condition={day.condition} />
+            </div>
+          </div>
+          <div className='text-base font-bold text-cyan-200 sm:text-lg'>{day.temperature}°C</div>
         </div>
+      </div>
+    ))
+  }, [weatherData.forecast, showDetails])
 
-        {/* Grid lines */}
-        <div className='absolute inset-0 -z-10 bg-[linear-gradient(0deg,rgba(0,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]'></div>
-
-        {/* Main holographic container */}
-        <div
-          className={`relative overflow-hidden rounded-2xl border border-cyan-500/30 backdrop-blur-sm transition-all duration-1000 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        >
-          {/* Holographic overlay effect */}
+  return (
+    <div className='flex min-h-[400px] w-full items-center justify-center rounded-3xl bg-gradient-to-b from-cyan-950 to-slate-950 p-3 sm:min-h-[500px] sm:p-6'>
+      <div className='relative w-full max-w-md transition-all duration-300'>
+        {/* Main container */}
+        <div className={`relative overflow-hidden rounded-2xl border border-cyan-500/30 transition-all duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
+          {/* Simple background */}
           <div className='absolute inset-0 z-0 bg-gradient-to-b from-cyan-950/80 via-slate-900/90 to-purple-950/80'></div>
-          <div className="absolute inset-0 z-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjEwIiBoZWlnaHQ9IjEwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDEwIDAgTCAwIDAgTCAwIDEwIiBmaWxsPSJub25lIiBzdHJva2U9InJnYmEoMCwyNTUsMjU1LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20"></div>
-
-          {/* Scanning effect */}
-          <div
-            className={`absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-transparent via-cyan-400/20 to-transparent transition-all duration-1000 ease-in-out ${scanning ? 'translate-y-full' : '-translate-y-full'}`}
-          ></div>
 
           {/* Header section */}
-          <div className='relative z-10 border-b border-cyan-500/30 p-6'>
+          <div className='relative z-10 border-b border-cyan-500/30 p-4 sm:p-6'>
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-3'>
                 <div className='relative'>
-                  <div className='absolute inset-0 animate-pulse rounded-full bg-cyan-500 blur-md'></div>
-                  <div className='relative flex h-10 w-10 items-center justify-center rounded-full border border-cyan-500/50 bg-cyan-950'>
-                    <CloudSun className='h-5 w-5 text-cyan-400' />
+                  <div className='flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/50 bg-cyan-950 sm:h-10 sm:w-10'>
+                    <CloudSun className='h-4 w-4 text-cyan-400 sm:h-5 sm:w-5' />
                   </div>
                 </div>
                 <div>
-                  <h3 className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-xl font-bold text-transparent'>Thời tiết</h3>
+                  <h3 className='text-lg font-bold text-cyan-200 sm:text-xl'>Thời tiết</h3>
                   <div className='mt-1 flex items-center text-xs text-cyan-400/70'>
-                    <div className='mr-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400'></div>
                     <span>Đom Đóm AI</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Location info with futuristic style */}
-            <div className={`mt-5 transition-all delay-500 duration-1000 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+            {/* Location info with simplified style */}
+            <div className={`mt-4 transition-all duration-300 sm:mt-5 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
               <div className='mb-1 flex items-center space-x-2 text-xs text-cyan-300/90'>
                 <div className='h-px flex-grow bg-gradient-to-r from-cyan-500/50 to-transparent'></div>
                 <span>THÔNG TIN KHU VỰC</span>
                 <div className='h-px flex-grow bg-gradient-to-l from-cyan-500/50 to-transparent'></div>
               </div>
 
-              <div className='mt-2 grid grid-cols-2 gap-3'>
-                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2.5'>
-                  <div className='flex items-center space-x-2'>
-                    <MapPin className='h-3.5 w-3.5 text-cyan-400/70' />
-                    <div className='text-[10px] text-cyan-400/70 uppercase'>Vị trí</div>
+              <div className='mt-2 grid grid-cols-2 gap-2 sm:gap-3'>
+                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2 sm:p-2.5'>
+                  <div className='flex items-center space-x-1 sm:space-x-2'>
+                    <MapPin className='h-3 w-3 text-cyan-400/70 sm:h-3.5 sm:w-3.5' />
+                    <div className='text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Vị trí</div>
                   </div>
-                  <div className='mt-1 truncate text-sm font-medium text-cyan-100'>{weatherData.location}</div>
+                  <div className='mt-1 truncate text-xs font-medium text-cyan-100 sm:text-sm'>{weatherData.location}</div>
                 </div>
-                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2.5'>
-                  <div className='flex items-center space-x-2'>
-                    <Clock className='h-3.5 w-3.5 text-cyan-400/70' />
-                    <div className='text-[10px] text-cyan-400/70 uppercase'>Giờ</div>
+                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2 sm:p-2.5'>
+                  <div className='flex items-center space-x-1 sm:space-x-2'>
+                    <Clock className='h-3 w-3 text-cyan-400/70 sm:h-3.5 sm:w-3.5' />
+                    <div className='text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Giờ</div>
                   </div>
-                  <div className='mt-1 truncate text-sm font-medium text-cyan-100'>{weatherData.time}</div>
+                  <div className='mt-1 truncate text-xs font-medium text-cyan-100 sm:text-sm'>{weatherData.time}</div>
                 </div>
               </div>
 
-              <div className='mt-3 flex items-center justify-between'>
-                <div className='text-[10px] text-cyan-400/70 uppercase'>Ngày</div>
+              <div className='mt-3 flex items-center gap-1'>
                 <div className='text-xs font-medium text-cyan-100'>{weatherData.date}</div>
               </div>
             </div>
           </div>
 
           {/* Current Weather Section */}
-          <div className='relative z-10 border-b border-cyan-500/30 p-6'>
+          <div className='relative z-10 border-b border-cyan-500/30 p-4 sm:p-6'>
             <div
-              className={`mb-4 flex items-center space-x-2 text-xs text-cyan-300/90 transition-all delay-700 duration-1000 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
+              className={`mb-3 flex items-center space-x-2 text-xs text-cyan-300/90 transition-all duration-300 sm:mb-4 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
             >
               <div className='h-px flex-grow bg-gradient-to-r from-cyan-500/50 to-transparent'></div>
               <span>THỜI TIẾT HIỆN TẠI</span>
               <div className='h-px flex-grow bg-gradient-to-l from-cyan-500/50 to-transparent'></div>
             </div>
 
-            <div
-              className={`flex items-center justify-between transition-all delay-800 duration-1000 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-            >
+            <div className={`flex items-center justify-between transition-all duration-300 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
               <div className='flex flex-col items-start'>
-                <div className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-5xl font-bold text-transparent'>{weatherData.temperature}°C</div>
-                <div className='mt-1 text-lg text-cyan-200'>{weatherData.condition}</div>
+                <div className='text-4xl font-bold text-cyan-200 sm:text-5xl'>{weatherData.temperature}°C</div>
+                <div className='mt-1 text-base text-cyan-200 sm:text-lg'>{weatherData.condition}</div>
 
-                <div className='mt-4 grid grid-cols-2 gap-x-6 gap-y-3'>
-                  <div className='flex items-center space-x-2'>
-                    <Droplets className='h-4 w-4 text-cyan-400/70' />
-                    <span className='text-sm text-cyan-100'>
+                <div className='mt-3 grid grid-cols-2 gap-x-4 gap-y-2 sm:mt-4 sm:gap-x-6 sm:gap-y-3'>
+                  <div className='flex items-center space-x-1 sm:space-x-2'>
+                    <Droplets className='h-3.5 w-3.5 text-cyan-400/70 sm:h-4 sm:w-4' />
+                    <span className='text-xs text-cyan-100 sm:text-sm'>
                       <span className='mr-1 text-cyan-400/70'>Độ ẩm:</span>
                       {weatherData.humidity}%
                     </span>
                   </div>
-                  <div className='flex items-center space-x-2'>
-                    <Wind className='h-4 w-4 text-cyan-400/70' />
-                    <span className='text-sm text-cyan-100'>
+                  <div className='flex items-center space-x-1 sm:space-x-2'>
+                    <Wind className='h-3.5 w-3.5 text-cyan-400/70 sm:h-4 sm:w-4' />
+                    <span className='text-xs text-cyan-100 sm:text-sm'>
                       <span className='mr-1 text-cyan-400/70'>Tốc độ gió:</span>
                       {weatherData.windSpeed} km/h
                     </span>
@@ -212,48 +193,25 @@ const WeatherTemplate: React.FC<{ weatherData?: WeatherData }> = ({
               </div>
 
               <div className='relative'>
-                <div className='absolute inset-0 rounded-full bg-cyan-500/20 blur-xl'></div>
-                <div className='relative flex h-10 w-10 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-950/50'>
-                  {getMainWeatherIcon(mainConditionType)}
+                <div className='flex h-14 w-14 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-950/50 p-2'>
+                  <WeatherIcon condition={mainConditionType} size='large' />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Forecast Section */}
-          <div className='relative z-10 p-6'>
+          <div className='relative z-10 p-4 sm:p-6'>
             <div
-              className={`mb-4 flex items-center space-x-2 text-xs text-cyan-300/90 transition-all delay-900 duration-1000 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
+              className={`mb-3 flex items-center space-x-2 text-xs text-cyan-300/90 transition-all duration-300 sm:mb-4 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
             >
               <div className='h-px flex-grow bg-gradient-to-r from-cyan-500/50 to-transparent'></div>
               <span>DỰ BÁO THỜI TIẾT</span>
               <div className='h-px flex-grow bg-gradient-to-l from-cyan-500/50 to-transparent'></div>
             </div>
 
-            <div className='grid grid-cols-3 gap-3'>
-              {weatherData.forecast.map((day, index) => (
-                <div
-                  key={index}
-                  className={`group relative overflow-hidden rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-3 transition-all duration-500 hover:border-cyan-400/40 hover:bg-cyan-900/30 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-                  style={{ transitionDelay: `${1000 + index * 200}ms` }}
-                >
-                  {/* Decorative corners */}
-                  <div className='absolute top-0 left-0 h-2 w-2 border-t border-l border-cyan-400/50'></div>
-                  <div className='absolute right-0 bottom-0 h-2 w-2 border-r border-b border-cyan-400/50'></div>
-
-                  {/* Animated highlight effect */}
-                  <div className='absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-cyan-400/10 to-transparent transition-transform duration-1500 ease-in-out group-hover:translate-x-full'></div>
-
-                  <div className='relative z-10 flex flex-col items-center'>
-                    <div className='mb-2 text-sm font-medium text-cyan-100'>{day.day}</div>
-                    <div className='my-2 flex justify-center'>{getWeatherIcon(day.condition)}</div>
-                    <div className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-lg font-bold text-transparent'>{day.temperature}°C</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className='grid grid-cols-3 gap-2 sm:gap-3'>{forecastItems}</div>
           </div>
-
           {/* Decorative elements */}
           <div className='absolute top-0 right-0 -z-10 h-32 w-32 rounded-full bg-cyan-500/10 blur-3xl'></div>
           <div className='absolute bottom-0 left-0 -z-10 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl'></div>
@@ -324,4 +282,4 @@ const WeatherTemplate: React.FC<{ weatherData?: WeatherData }> = ({
   )
 }
 
-export default WeatherTemplate
+export default React.memo(WeatherTemplate)

@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Wheat, ArrowDown, ArrowUp, Minus, RefreshCw, Maximize2, ChevronRight } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { Wheat, ArrowDown, ArrowUp, Minus, ChevronRight } from 'lucide-react'
 
 interface PriceItem {
   product: string
@@ -20,21 +20,115 @@ interface AgriPriceData {
   items: PriceItem[]
 }
 
-const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
-  priceData = {
-    title: 'Giá nông sản hôm nay',
-    date: 'Ngày 01/04/2025',
-    region: 'Đồng bằng sông Cửu Long',
-    market: 'Chợ đầu mối nông sản Tiền Giang',
-    items: [
-      { product: 'Lúa gạo', currentPrice: 6500, previousPrice: 6200, unit: 'đồng/kg', trend: 'up' },
-      { product: 'Khoai lang', currentPrice: 15000, previousPrice: 15000, unit: 'đồng/kg', trend: 'stable' },
-      { product: 'Ngô', currentPrice: 4800, previousPrice: 5000, unit: 'đồng/kg', trend: 'down' },
-      { product: 'Sắn', currentPrice: 3200, previousPrice: 3000, unit: 'đồng/kg', trend: 'up' },
-      { product: 'Cà phê', currentPrice: 92000, previousPrice: 94000, unit: 'đồng/kg', trend: 'down' }
-    ]
+// Memoized price item component for better performance
+const PriceItemComponent = memo(
+  ({
+    item,
+    index,
+    activeItem,
+    setActiveItem,
+    showDetails,
+    formatPrice,
+    calculateChange
+  }: {
+    item: PriceItem
+    index: number
+    activeItem: number | null
+    setActiveItem: (index: number | null) => void
+    showDetails: boolean
+    formatPrice: (price: number) => string
+    calculateChange: (current: number, previous: number) => string
+  }) => {
+    const handleClick = useCallback(() => {
+      setActiveItem(activeItem === index ? null : index)
+    }, [activeItem, index, setActiveItem])
+
+    return (
+      <div
+        className={`relative cursor-pointer rounded-xl border transition-all duration-300 ease-out ${
+          activeItem === index
+            ? 'border-cyan-400/50 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
+            : 'border-cyan-500/20 bg-cyan-950/30 hover:bg-cyan-900/20'
+        } ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} `}
+        style={{ transitionDelay: `${index * 50}ms` }}
+        onClick={handleClick}
+      >
+        {/* Item header */}
+        <div className='flex items-center justify-between p-2 sm:p-3'>
+          <div className='flex items-center space-x-2'>
+            <div
+              className={`flex h-6 w-6 items-center justify-center rounded-full sm:h-8 sm:w-8 ${
+                item.trend === 'up'
+                  ? 'border border-emerald-500/30 bg-emerald-900/30 text-emerald-400'
+                  : item.trend === 'down'
+                    ? 'border border-rose-500/30 bg-rose-900/30 text-rose-400'
+                    : 'border border-amber-500/30 bg-amber-900/30 text-amber-400'
+              }`}
+            >
+              {item.trend === 'up' ? (
+                <ArrowUp className='h-3 w-3 sm:h-4 sm:w-4' />
+              ) : item.trend === 'down' ? (
+                <ArrowDown className='h-3 w-3 sm:h-4 sm:w-4' />
+              ) : (
+                <Minus className='h-3 w-3 sm:h-4 sm:w-4' />
+              )}
+            </div>
+            <div>
+              <div className='text-xs font-medium text-cyan-100 sm:text-sm'>{item.product}</div>
+              <div className='text-[9px] text-cyan-400/70 sm:text-xs'>{item.unit}</div>
+            </div>
+          </div>
+
+          <div className='flex items-center space-x-1 sm:space-x-3'>
+            <div className='text-right'>
+              <div className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-base font-bold text-transparent sm:text-lg'>
+                {formatPrice(item.currentPrice)}
+              </div>
+              <div
+                className={`text-[9px] font-medium sm:text-xs ${
+                  item.trend === 'up' ? 'text-emerald-400' : item.trend === 'down' ? 'text-rose-400' : 'text-amber-400'
+                }`}
+              >
+                {item.trend === 'up'
+                  ? `+${calculateChange(item.currentPrice, item.previousPrice)}%`
+                  : item.trend === 'down'
+                    ? `-${calculateChange(item.previousPrice, item.currentPrice)}%`
+                    : 'Ổn định'}
+              </div>
+            </div>
+            <ChevronRight className={`h-3 w-3 text-cyan-400/70 transition-transform duration-300 sm:h-4 sm:w-4 ${activeItem === index ? 'rotate-90' : ''}`} />
+          </div>
+        </div>
+
+        {/* Expanded details */}
+        {activeItem === index && (
+          <div className='max-h-40 overflow-hidden opacity-100 transition-all duration-300 ease-out'>
+            <div className='border-t border-cyan-500/20 px-3 pt-0'>
+              <div className='mb-2 grid grid-cols-2 gap-2 sm:mb-3 sm:gap-3'>
+                <div className='mt-2 rounded-lg bg-cyan-500/10 p-2 sm:p-2.5'>
+                  <div className='mb-1 text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Previous</div>
+                  <div className='text-xs font-medium text-cyan-100 sm:text-sm'>
+                    {formatPrice(item.previousPrice)} {item.unit}
+                  </div>
+                </div>
+                <div className='mt-2 rounded-lg bg-cyan-500/10 p-2 sm:p-2.5'>
+                  <div className='mb-1 text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Source</div>
+                  <div className='truncate text-xs font-medium text-cyan-100 sm:text-sm'>{item.location || 'Standard Market'}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   }
-}) => {
+)
+
+PriceItemComponent.displayName = 'PriceItemComponent'
+
+const AgriPriceTemplate: React.FC<{ priceData: AgriPriceData; isLoading?: boolean }> = ({ priceData, isLoading = false }) => {
+  // If loading is true, show the skeleton
+
   const [activeItem, setActiveItem] = useState<number | null>(null)
   const [loaded, setLoaded] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -43,34 +137,38 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
   const [rotateX, setRotateX] = useState(0)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Format price in Vietnamese currency
-  const formatPrice = (price: number) => {
+  // Format price in Vietnamese currency - memoized
+  const formatPrice = useCallback((price: number) => {
     return new Intl.NumberFormat('vi-VN').format(price)
-  }
-
-  // Calculate percentage change
-  const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return 0
-    const change = ((current - previous) / previous) * 100
-    return change.toFixed(1)
-  }
-
-  // Simulate loading sequence
-  useEffect(() => {
-    const timer1 = setTimeout(() => setLoaded(true), 500)
-    const timer2 = setTimeout(() => setScanning(true), 1500)
-    const timer3 = setTimeout(() => setShowDetails(true), 2500)
-
-    return () => {
-      clearTimeout(timer1)
-      clearTimeout(timer2)
-      clearTimeout(timer3)
-    }
   }, [])
 
-  // 3D hover effect
+  // Calculate percentage change - memoized
+  const calculateChange = useCallback((current: number, previous: number) => {
+    if (previous === 0) return '0'
+    const change = ((current - previous) / previous) * 100
+    return change.toFixed(1)
+  }, [])
+
+  // Simulate loading sequence with faster timing
   useEffect(() => {
+    // Show content immediately
+    setLoaded(true)
+    setScanning(true)
+    setShowDetails(true)
+
+    return () => {}
+  }, [])
+
+  // 3D hover effect with throttling
+  useEffect(() => {
+    let lastUpdateTime = 0
+    const throttleDelay = 16 // ~60fps
+
     const handleMouseMove = (e: MouseEvent) => {
+      const now = Date.now()
+      if (now - lastUpdateTime < throttleDelay) return
+      lastUpdateTime = now
+
       if (!containerRef.current) return
 
       const rect = containerRef.current.getBoundingClientRect()
@@ -90,7 +188,7 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
   }, [])
 
   return (
-    <div className='perspective-1000 flex min-h-[500px] w-full items-center justify-center rounded-3xl bg-gradient-to-b from-cyan-950 to-slate-950 p-6'>
+    <div className='perspective-1000 flex min-h-[400px] w-full items-center justify-center rounded-3xl bg-gradient-to-b from-cyan-950 to-slate-950 p-3 sm:min-h-[500px] sm:p-6'>
       <div
         ref={containerRef}
         className='preserve-3d relative w-full max-w-md transform-gpu transition-all duration-300'
@@ -109,7 +207,7 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
 
         {/* Main holographic container */}
         <div
-          className={`relative overflow-hidden rounded-2xl border border-cyan-500/30 backdrop-blur-sm transition-all duration-1000 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`relative overflow-hidden rounded-2xl border border-cyan-500/30 backdrop-blur-sm transition-all duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         >
           {/* Holographic overlay effect */}
           <div className='absolute inset-0 z-0 bg-gradient-to-b from-cyan-950/80 via-slate-900/90 to-purple-950/80'></div>
@@ -117,21 +215,21 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
 
           {/* Scanning effect */}
           <div
-            className={`absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-transparent via-cyan-400/20 to-transparent transition-all duration-1000 ease-in-out ${scanning ? 'translate-y-full' : '-translate-y-full'}`}
+            className={`absolute inset-0 z-0 h-full w-full bg-gradient-to-b from-transparent via-cyan-400/20 to-transparent transition-all duration-500 ease-in-out ${scanning ? 'translate-y-full' : '-translate-y-full'}`}
           ></div>
 
           {/* Header section */}
-          <div className='relative z-10 border-b border-cyan-500/30 p-6'>
+          <div className='relative z-10 border-b border-cyan-500/30 p-4 sm:p-6'>
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-3'>
                 <div className='relative'>
                   <div className='absolute inset-0 animate-pulse rounded-full bg-cyan-500 blur-md'></div>
-                  <div className='relative flex h-10 w-10 items-center justify-center rounded-full border border-cyan-500/50 bg-cyan-950'>
-                    <Wheat className='h-5 w-5 text-cyan-400' />
+                  <div className='relative flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/50 bg-cyan-950 sm:h-10 sm:w-10'>
+                    <Wheat className='h-4 w-4 text-cyan-400 sm:h-5 sm:w-5' />
                   </div>
                 </div>
                 <div>
-                  <h3 className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-xl font-bold text-transparent'>{priceData.title}</h3>
+                  <h3 className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-lg font-bold text-transparent sm:text-xl'>{priceData?.title}</h3>
                   <div className='mt-1 flex items-center text-xs text-cyan-400/70'>
                     <span>Đom Đóm AI</span>
                     <div className='text-linear-gradient-2 text-[10px] leading-[13px] font-bold'>BETA</div>
@@ -141,35 +239,35 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
             </div>
 
             {/* Location info with futuristic style */}
-            <div className={`mt-5 transition-all delay-500 duration-1000 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+            <div className={`mt-4 transition-all duration-300 sm:mt-5 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
               <div className='mb-1 flex items-center space-x-2 text-xs text-cyan-300/90'>
                 <div className='h-px flex-grow bg-gradient-to-r from-cyan-500/50 to-transparent'></div>
                 <span>THÔNG TIN KHU VỰC</span>
                 <div className='h-px flex-grow bg-gradient-to-l from-cyan-500/50 to-transparent'></div>
               </div>
 
-              <div className='mt-2 grid grid-cols-2 gap-3'>
-                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2.5'>
-                  <div className='mb-1 text-[10px] text-cyan-400/70 uppercase'>Khu vực</div>
-                  <div className='truncate text-sm font-medium text-cyan-100'>{priceData.region}</div>
+              <div className='mt-2 grid grid-cols-2 gap-2 sm:gap-3'>
+                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2 sm:p-2.5'>
+                  <div className='mb-1 text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Khu vực</div>
+                  <div className='truncate text-xs font-medium text-cyan-100 sm:text-sm'>{priceData?.region}</div>
                 </div>
-                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2.5'>
-                  <div className='mb-1 text-[10px] text-cyan-400/70 uppercase'>Chợ</div>
-                  <div className='truncate text-sm font-medium text-cyan-100'>{priceData.market}</div>
+                <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-2 sm:p-2.5'>
+                  <div className='mb-1 text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Chợ</div>
+                  <div className='truncate text-xs font-medium text-cyan-100 sm:text-sm'>{priceData?.market}</div>
                 </div>
               </div>
 
               <div className='mt-3 flex items-center justify-between'>
-                <div className='text-[10px] text-cyan-400/70 uppercase'>Last updated</div>
-                <div className='text-xs font-medium text-cyan-100'>{priceData.date}</div>
+                <div className='text-[9px] text-cyan-400/70 uppercase sm:text-[10px]'>Last updated</div>
+                <div className='text-xs font-medium text-cyan-100'>{priceData?.date}</div>
               </div>
             </div>
           </div>
 
           {/* Price data section */}
-          <div className='relative z-10 p-4'>
+          <div className='relative z-10 p-3 sm:p-4'>
             <div
-              className={`mb-3 flex items-center space-x-2 text-xs text-cyan-300/90 transition-all delay-700 duration-1000 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
+              className={`mb-2 flex items-center space-x-2 text-xs text-cyan-300/90 transition-all duration-300 sm:mb-3 ${showDetails ? 'opacity-100' : 'opacity-0'}`}
             >
               <div className='h-px flex-grow bg-gradient-to-r from-cyan-500/50 to-transparent'></div>
               <span>NÔNG SẢN</span>
@@ -177,85 +275,18 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
             </div>
 
             {/* Price items */}
-            <div className='space-y-3'>
-              {priceData.items.map((item, index) => (
-                <div
+            <div className='space-y-2 sm:space-y-3'>
+              {priceData?.items.map((item, index) => (
+                <PriceItemComponent
                   key={index}
-                  className={`relative cursor-pointer rounded-xl border transition-all duration-500 ease-out ${
-                    activeItem === index
-                      ? 'border-cyan-400/50 bg-cyan-900/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
-                      : 'border-cyan-500/20 bg-cyan-950/30 hover:bg-cyan-900/20'
-                  } ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'} `}
-                  style={{ transitionDelay: `${800 + index * 100}ms` }}
-                  onClick={() => setActiveItem(activeItem === index ? null : index)}
-                >
-                  {/* Item header */}
-                  <div className='flex items-center justify-between p-3'>
-                    <div className='flex items-center space-x-3'>
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                          item.trend === 'up'
-                            ? 'border border-emerald-500/30 bg-emerald-900/30 text-emerald-400'
-                            : item.trend === 'down'
-                              ? 'border border-rose-500/30 bg-rose-900/30 text-rose-400'
-                              : 'border border-amber-500/30 bg-amber-900/30 text-amber-400'
-                        }`}
-                      >
-                        {item.trend === 'up' ? (
-                          <ArrowUp className='h-4 w-4' />
-                        ) : item.trend === 'down' ? (
-                          <ArrowDown className='h-4 w-4' />
-                        ) : (
-                          <Minus className='h-4 w-4' />
-                        )}
-                      </div>
-                      <div>
-                        <div className='text-sm font-medium text-cyan-100'>{item.product}</div>
-                        <div className='text-xs text-cyan-400/70'>{item.unit}</div>
-                      </div>
-                    </div>
-
-                    <div className='flex items-center space-x-3'>
-                      <div className='text-right'>
-                        <div className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-lg font-bold text-transparent'>
-                          {formatPrice(item.currentPrice)}
-                        </div>
-                        <div
-                          className={`text-xs font-medium ${
-                            item.trend === 'up' ? 'text-emerald-400' : item.trend === 'down' ? 'text-rose-400' : 'text-amber-400'
-                          }`}
-                        >
-                          {item.trend === 'up'
-                            ? `+${calculateChange(item.currentPrice, item.previousPrice)}%`
-                            : item.trend === 'down'
-                              ? `-${calculateChange(item.previousPrice, item.currentPrice)}%`
-                              : 'Ổn định'}
-                        </div>
-                      </div>
-                      <ChevronRight className={`h-4 w-4 text-cyan-400/70 transition-transform duration-300 ${activeItem === index ? 'rotate-90' : ''}`} />
-                    </div>
-                  </div>
-
-                  {/* Expanded details */}
-                  <div
-                    className={`overflow-hidden transition-all duration-500 ease-out ${activeItem === index ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
-                  >
-                    <div className='border-t border-cyan-500/20 p-3 pt-0'>
-                      <div className='mb-3 grid grid-cols-2 gap-3'>
-                        <div className='mt-2 rounded-lg bg-cyan-500/10 p-2.5'>
-                          <div className='mb-1 text-[10px] text-cyan-400/70 uppercase'>Previous</div>
-                          <div className='text-sm font-medium text-cyan-100'>
-                            {formatPrice(item.previousPrice)} {item.unit}
-                          </div>
-                        </div>
-                        <div className='mt-2 rounded-lg bg-cyan-500/10 p-2.5'>
-                          <div className='mb-1 text-[10px] text-cyan-400/70 uppercase'>Source</div>
-                          <div className='truncate text-sm font-medium text-cyan-100'>{item.location || 'Standard Market'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  item={item}
+                  index={index}
+                  activeItem={activeItem}
+                  setActiveItem={setActiveItem}
+                  showDetails={showDetails}
+                  formatPrice={formatPrice}
+                  calculateChange={calculateChange}
+                />
               ))}
             </div>
           </div>
@@ -267,15 +298,15 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
           {/* Scan lines effect */}
           <div className='pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(transparent_0%,rgba(0,255,255,0.05)_50%,transparent_100%)] bg-[size:100%_4px]'></div>
 
-          {/* Glitch effect */}
-          <div className='pointer-events-none absolute inset-0 z-20 opacity-20 mix-blend-screen'>
+          {/* Glitch effect - reduced frequency */}
+          <div className='pointer-events-none absolute inset-0 z-20 opacity-10 mix-blend-screen'>
             <div
               className='absolute inset-0 animate-pulse'
               style={{
                 backgroundImage: 'linear-gradient(0deg, transparent 0%, rgba(0, 255, 255, 0.2) 2%, transparent 3%)',
                 backgroundSize: '100% 100%',
                 backgroundRepeat: 'no-repeat',
-                animation: 'glitch 2s infinite'
+                animation: 'glitch 5s infinite'
               }}
             ></div>
           </div>
@@ -291,24 +322,6 @@ const AgriPriceTemplate: React.FC<{ priceData?: AgriPriceData }> = ({
             opacity: 0.3;
           }
           10% {
-            opacity: 0;
-          }
-          27% {
-            opacity: 0;
-          }
-          30% {
-            opacity: 0.3;
-          }
-          35% {
-            opacity: 0;
-          }
-          52% {
-            opacity: 0;
-          }
-          55% {
-            opacity: 0.3;
-          }
-          60% {
             opacity: 0;
           }
           92% {

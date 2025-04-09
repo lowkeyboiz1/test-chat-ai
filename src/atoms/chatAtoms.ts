@@ -71,7 +71,7 @@ export function useChatState() {
   }, [aiMessages, setAiMessages])
 
   const handleSendMessage = () => {
-    if (inputValue.trim() === '') return
+    if (inputValue.trim() === '' || isLoading || isTyping) return
     handleSubmit(new Event('submit'))
     setInputValue('')
     setIsTyping(true)
@@ -97,6 +97,7 @@ export function useChatState() {
     isTyping,
     isRecording,
     handleSendMessage,
+    isLoading,
     toggleRecording
   }
 }

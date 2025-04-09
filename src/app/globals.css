@@ -120,10 +120,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-.text-linear-gradient-2 {
-  background: linear-gradient(270deg, #52ffa1 0%, #2797ff 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}

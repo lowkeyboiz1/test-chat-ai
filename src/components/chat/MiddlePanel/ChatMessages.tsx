@@ -19,6 +19,8 @@ export function ChatMessages() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [isTyping])
 
+  console.log({ messages })
+
   return (
     <ScrollArea className='h-[calc(100vh-500px)] flex-1 p-2 sm:p-4'>
       <div className='mx-auto max-w-4xl space-y-4 sm:space-y-6'>
