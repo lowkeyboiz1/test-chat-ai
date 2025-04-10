@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 // Basic atoms
 export const inputValueAtom = atom('')
 export const isRecordingAtom = atom(false)
+export const transcriptAtom = atom('')
 export const isTypingAtom = atom(false)
 export const weatherAtom = atom<TWeatherData>({
   temp: 28,

@@ -1,6 +1,7 @@
 'use client'
 import AgriPriceTemplate from '@/components/chat/MiddlePanel/AgriPriceTemplate'
 import FarmingTechniqueTemplate from '@/components/chat/MiddlePanel/FarmingTechniqueTemplate'
+import TextToSpeech from '@/components/chat/TextToSpeech'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TMessage } from '@/types'
 import { formatTime } from '@/utils/formatters'
@@ -160,7 +161,12 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         ) : (
           <div className={messageClasses.bubble}>
             {/* Only show plain text if we should not hide it */}
-            {!shouldHideText && displayText && <p className='leading-relaxed whitespace-pre-line'>{displayText}</p>}
+            {!shouldHideText && displayText && (
+              <div className='flex items-start justify-between gap-2'>
+                <p className='flex-1 leading-relaxed whitespace-pre-line'>{displayText}</p>
+                {!isTyping && displayText && <TextToSpeech text={displayText} />}
+              </div>
+            )}
 
             {/* Show templates if data is available - using Suspense for better UX */}
             <Suspense fallback={<TemplateLoader />}>

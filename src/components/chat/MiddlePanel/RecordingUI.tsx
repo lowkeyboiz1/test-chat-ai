@@ -5,7 +5,7 @@ import { Square, X, Mic, Volume2, Sparkles, Loader2, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface RecordingUIProps {
-  onStop: () => void
+  onStop: (transcript: string) => void
   onCancel: () => void
   transcript: string
 }
@@ -22,6 +22,10 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
   const animationFrameRef = useRef<number | null>(null)
   const [recordingPhase, setRecordingPhase] = useState<'initial' | 'active' | 'peak'>('initial')
   const [pulseEffect, setPulseEffect] = useState(false)
+  const [isTranscribing, setIsTranscribing] = useState(false)
+  const [localTranscript, setLocalTranscript] = useState(transcript)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   // Format time as MM:SS - memoized
   const formatTime = useCallback((seconds: number) => {
@@ -71,7 +75,7 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
     return () => clearInterval(timer)
   }, [])
 
-  // Initialize audio analysis
+  // Initialize audio recording and analysis
   useEffect(() => {
     const initAudio = async () => {
       try {
@@ -79,7 +83,7 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
         mediaStreamRef.current = stream
 
-        // Create audio context and analyzer
+        // Create audio context and analyzer for visualization
         const audioContext = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)()
         audioContextRef.current = audioContext
 
@@ -90,7 +94,22 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
         const source = audioContext.createMediaStreamSource(stream)
         source.connect(analyser)
 
-        // Start analyzing audio levels
+        // Initialize MediaRecorder for capturing audio
+        const mediaRecorder = new MediaRecorder(stream)
+        mediaRecorderRef.current = mediaRecorder
+
+        // Setup event handlers for MediaRecorder
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data)
+          }
+        }
+
+        // Start recording
+        audioChunksRef.current = []
+        mediaRecorder.start(1000) // Collect data every second
+
+        // Start analyzing audio levels for visualization
         const dataArray = new Uint8Array(analyser.frequencyBinCount)
 
         const updateAudioLevel = () => {
@@ -127,11 +146,64 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
         audioContextRef.current.close()
       }
 
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      }
+
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop())
       }
     }
   }, [])
+
+  // Handle stop button click
+  const handleStop = async () => {
+    setIsTranscribing(true)
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+
+      // Create audio blob from all chunks
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+
+      try {
+        // Create FormData to send to Whisper API
+        const formData = new FormData()
+        formData.append('file', audioBlob, 'recording.webm')
+        formData.append('model', 'whisper-1')
+        formData.append('language', 'vi') // Vietnamese language
+
+        // Send to OpenAI Whisper API
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`
+          },
+          body: formData
+        })
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // Update transcript
+        setLocalTranscript(data.text)
+
+        // Call onStop with the transcribed text
+        onStop(data.text)
+      } catch (error) {
+        console.error('Error transcribing audio:', error)
+        // Still call onStop but with the existing transcript
+        onStop(localTranscript)
+      } finally {
+        setIsTranscribing(false)
+      }
+    } else {
+      onStop(localTranscript)
+    }
+  }
 
   // Create dynamic audio visualization with enhanced bars
   useEffect(() => {
@@ -298,18 +370,24 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
           <div className='mb-3 sm:mb-4'>
             <div className='mb-2 text-center text-xs font-medium text-cyan-300 sm:text-sm'>VĂN BẢN ĐÃ NHẬN DẠNG</div>
 
-            {transcript ? (
+            {localTranscript ? (
               <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 p-3 sm:p-4'>
                 <div className='mb-2 inline-flex rounded-full bg-cyan-500/20 px-2 py-0.5'>
                   <Sparkles className='mr-1 h-3 w-3 text-cyan-300' />
                   <span className='text-[10px] font-medium text-cyan-300 sm:text-xs'>Đã nhận dạng</span>
                 </div>
 
-                <p className='mb-2 text-sm font-medium text-cyan-100 sm:text-base'>{transcript}</p>
+                <p className='mb-2 text-sm font-medium text-cyan-100 sm:text-base'>{localTranscript}</p>
 
                 <div className='flex items-center gap-1 text-[10px] text-cyan-400 sm:text-xs'>
-                  <Loader2 className='h-3 w-3 animate-spin' />
-                  <span>Đang phân tích...</span>
+                  {isTranscribing ? (
+                    <>
+                      <Loader2 className='h-3 w-3 animate-spin' />
+                      <span>Đang phân tích...</span>
+                    </>
+                  ) : (
+                    <span>Whisper AI đã chuyển đổi giọng nói thành văn bản</span>
+                  )}
                 </div>
               </div>
             ) : (
@@ -318,8 +396,17 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
                   <Sparkles className='mb-2 h-5 w-5 text-cyan-500/80 sm:h-6 sm:w-6' />
                   <p className='text-center text-xs text-cyan-400/90 sm:text-sm'>Bắt đầu nói để thấy văn bản được nhận dạng...</p>
                   <div className='mt-2 flex items-center gap-1'>
-                    <Loader2 className='h-3 w-3 animate-spin text-cyan-400' />
-                    <span className='text-[10px] font-medium text-cyan-400 sm:text-xs'>Đang lắng nghe</span>
+                    {isTranscribing ? (
+                      <>
+                        <Loader2 className='h-3 w-3 animate-spin text-cyan-400' />
+                        <span className='text-[10px] font-medium text-cyan-400 sm:text-xs'>Đang nhận dạng</span>
+                      </>
+                    ) : (
+                      <>
+                        <Loader2 className='h-3 w-3 animate-spin text-cyan-400' />
+                        <span className='text-[10px] font-medium text-cyan-400 sm:text-xs'>Đang lắng nghe</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -330,17 +417,28 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
         {/* Button section */}
         <div className='flex justify-center gap-2 border-t border-cyan-500/20 bg-gradient-to-t from-slate-900 to-cyan-950/40 p-3 sm:gap-3 sm:p-4'>
           <Button
-            onClick={onStop}
+            onClick={handleStop}
             className='h-9 bg-gradient-to-r from-cyan-600 to-cyan-500 px-3 py-1 text-xs text-white hover:from-cyan-700 hover:to-cyan-600 sm:px-4 sm:text-sm'
+            disabled={isTranscribing}
           >
-            <Square className='mr-1.5 h-3 w-3 sm:h-4 sm:w-4' />
-            <span>Dừng ghi âm</span>
+            {isTranscribing ? (
+              <>
+                <Loader2 className='mr-1.5 h-3 w-3 animate-spin sm:h-4 sm:w-4' />
+                <span>Đang xử lý...</span>
+              </>
+            ) : (
+              <>
+                <Square className='mr-1.5 h-3 w-3 sm:h-4 sm:w-4' />
+                <span>Dừng ghi âm</span>
+              </>
+            )}
           </Button>
 
           <Button
             onClick={onCancel}
             variant='outline'
             className='h-9 border-cyan-500/50 px-3 py-1 text-xs text-cyan-200 hover:border-cyan-400 hover:bg-cyan-900/50 sm:px-4 sm:text-sm'
+            disabled={isTranscribing}
           >
             <X className='mr-1.5 h-3 w-3 sm:h-4 sm:w-4' />
             <span>Huỷ bỏ</span>
