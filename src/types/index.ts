@@ -24,5 +24,5 @@ export type TLandPlot = {
   name: string
   area: string
   location: string
-  crops: ICropData[]
+  crops: TCropData[]
 }

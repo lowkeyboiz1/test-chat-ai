@@ -5,10 +5,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { TMessage } from '@/types'
 import { formatTime } from '@/utils/formatters'
 import { Bug, User } from 'lucide-react'
-import { useEffect, useState, useMemo, useCallback } from 'react'
-import WeatherTemplate from '@/components/chat/MiddlePanel/WeatherTemplate'
+import { useEffect, useState, useMemo, useCallback, lazy, Suspense, memo } from 'react'
 import { useAtom } from 'jotai'
 import { isTypingAtom } from '@/atoms/chatAtoms'
+
+// Lazy load the large templates
+const WeatherTemplate = lazy(() => import('@/components/chat/MiddlePanel/WeatherTemplate'))
 
 interface MessageBubbleProps {
   message: TMessage
@@ -25,7 +27,18 @@ interface TemplateData {
   farmingTechnique: any | null
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+// Loading placeholder component
+const TemplateLoader = memo(function TemplateLoader() {
+  return (
+    <div className='flex items-center justify-center py-4'>
+      <div className='h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-amber-500'></div>
+      <span className='ml-2 text-sm text-amber-600'>Đang chuẩn bị dữ liệu...</span>
+    </div>
+  )
+})
+
+// Optimized with memo for better performance
+export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
   const [templateData, setTemplateData] = useState<TemplateData>({
     weather: null,
     agriPrice: null,
@@ -125,7 +138,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   }, [message.sender])
 
   return (
-    <div className={messageClasses.container}>
+    <div className={messageClasses.container} role={message.sender === 'ai' ? 'status' : undefined}>
       <div className={messageClasses.innerContainer}>
         {message.sender === 'ai' && (
           <Avatar className='mt-1 h-8 w-8 bg-gradient-to-r from-amber-500 to-yellow-400 shadow-md ring-1 ring-amber-300'>
@@ -133,6 +146,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               src='https://readdy.ai/api/search-image?query=A traditional Vietnamese firefly AI assistant with a warm glowing light, incorporating rice paddy elements and traditional Vietnamese patterns, with a friendly appearance, suitable for a farming application for Vietnamese farmers&width=100&height=100&seq=3&orientation=squarish'
               alt='Đom Đóm AI'
               className='object-cover'
+              loading='lazy'
             />
             <AvatarFallback className='bg-gradient-to-r from-amber-500 to-yellow-400'>
               <Bug className='text-xs text-white' />
@@ -148,15 +162,23 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         ) : (
           <div className={messageClasses.bubble}>
             {/* Only show plain text if we should not hide it */}
-            {!shouldHideText && <p className='leading-relaxed'>{displayText}</p>}
+            {!shouldHideText && displayText && <p className='leading-relaxed whitespace-pre-line'>{displayText}</p>}
 
-            {/* Show templates if data is available */}
-            {templateData.weather && <div className='mt-3 w-full'>{<WeatherTemplate weatherData={templateData.weather} />}</div>}
+            {/* Show templates if data is available - using Suspense for better UX */}
+            <Suspense fallback={<TemplateLoader />}>
+              {templateData.weather && (
+                <div className='mt-3 w-full'>
+                  <WeatherTemplate weatherData={templateData.weather} />
+                </div>
+              )}
+            </Suspense>
+
             {templateData.agriPrice && (
               <div className='mt-3 w-full'>
                 <AgriPriceTemplate priceData={templateData.agriPrice} />
               </div>
             )}
+
             {templateData.farmingTechnique && (
               <div className='mt-3 w-full'>
                 <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
@@ -164,12 +186,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             )}
 
             {/* If we have partial template and are still typing, show a placeholder */}
-            {hasPartialTemplate && isTyping && !hasTemplate && (
-              <div className='flex items-center justify-center py-4'>
-                <div className='h-8 w-8 animate-spin rounded-full border-t-2 border-b-2 border-amber-500'></div>
-                <span className='ml-2 text-sm text-amber-600'>Đang chuẩn bị dữ liệu...</span>
-              </div>
-            )}
+            {hasPartialTemplate && isTyping && !hasTemplate && <TemplateLoader />}
 
             <div className={messageClasses.timestamp}>{formatTime(message.timestamp)}</div>
           </div>
@@ -181,6 +198,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
               src='https://readdy.ai/api/search-image?query=Portrait of a Vietnamese farmer in his 40s, wearing a traditional conical hat, with a weathered face showing experience and wisdom, standing in a lush green rice field during golden hour, with mountains in the background&width=100&height=100&seq=2&orientation=squarish'
               alt='Anh Tuấn'
               className='object-cover'
+              loading='lazy'
             />
             <AvatarFallback className='bg-green-100 text-green-700'>
               <User className='text-xs text-green-700' />
@@ -190,4 +208,4 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       </div>
     </div>
   )
-}
+})
