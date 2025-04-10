@@ -1,9 +1,9 @@
 import React from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { UserInfoPanel } from './UserInfoPanel'
-import { CropsPanel } from './CropsPanel'
-import { WeatherPanel } from './WeatherPanel'
+import { UserInfoPanel } from '@/components/sidebar/UserInfoPanel'
+import { CropsPanel } from '@/components/sidebar/CropsPanel'
+import { WeatherPanel } from '@/components/sidebar/WeatherPanel'
 import { TLandPlot, TCropData } from '@/types'
 
 interface RightSidebarProps {

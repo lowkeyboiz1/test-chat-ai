@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
-import { MessageBubble } from './MessageBubble'
+import { MessageBubble } from '@/components/chat/MiddlePanel/MessageBubble'
 import { Bug } from 'lucide-react'
 import { useAtom } from 'jotai'
 import { isTypingAtom, messagesAtom } from '@/atoms/chatAtoms'
@@ -16,21 +16,28 @@ export const ChatMessages = memo(function ChatMessages() {
   const [isTyping] = useAtom(isTypingAtom)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // Optimized scrolling with debounce implementation
+  // Improved scrolling function
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      messagesEndRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'end'
+      })
     }
   }, [])
 
+  // Scroll when messages change or typing status changes
   useEffect(() => {
-    // Only scroll when typing status changes or new messages are added
-    scrollToBottom()
-  }, [isTyping, messages.length, scrollToBottom])
+    const timeoutId = setTimeout(() => {
+      scrollToBottom()
+    }, 100) // Small delay to ensure content is rendered
+
+    return () => clearTimeout(timeoutId)
+  }, [messages.length, isTyping, scrollToBottom])
 
   return (
-    <ScrollArea className='h-[calc(100vh-500px)] flex-1 overflow-auto p-2 sm:p-4' data-testid='chat-messages'>
-      <div className='mx-auto max-w-4xl space-y-4 sm:space-y-6'>
+    <ScrollArea className='h-full w-full overflow-auto'>
+      <div className='mx-auto max-w-4xl space-y-4 p-2 sm:space-y-6 sm:p-4'>
         <div className='my-2 text-center sm:my-4'>
           <Badge variant='outline' className='bg-gray-100 text-xs text-gray-500 sm:text-sm'>
             {format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })}
@@ -57,7 +64,7 @@ export const ChatMessages = memo(function ChatMessages() {
             </div>
           </div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className='h-1' />
       </div>
     </ScrollArea>
   )

@@ -8,6 +8,7 @@ import { Bug, User } from 'lucide-react'
 import { useEffect, useState, useMemo, useCallback, lazy, Suspense, memo } from 'react'
 import { useAtom } from 'jotai'
 import { isTypingAtom } from '@/atoms/chatAtoms'
+import { WEATHER_REGEX, AGRI_PRICE_REGEX, FARMING_TECHNIQUE_REGEX } from '@/constans/regex'
 
 // Lazy load the large templates
 const WeatherTemplate = lazy(() => import('@/components/chat/MiddlePanel/WeatherTemplate'))
@@ -15,11 +16,6 @@ const WeatherTemplate = lazy(() => import('@/components/chat/MiddlePanel/Weather
 interface MessageBubbleProps {
   message: TMessage
 }
-
-// Define regex patterns outside component to avoid recreation on each render
-const WEATHER_REGEX = /@@@<WEATHER_DATA>([\s\S]*?)<\/WEATHER_DATA>@@@/
-const AGRI_PRICE_REGEX = /@@@<AGRI_PRICE_DATA>([\s\S]*?)<\/AGRI_PRICE_DATA>@@@/
-const FARMING_TECHNIQUE_REGEX = /@@@<FARMING_TECHNIQUE>([\s\S]*?)<\/FARMING_TECHNIQUE>@@@/
 
 interface TemplateData {
   weather: any | null
@@ -44,6 +40,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     agriPrice: null,
     farmingTechnique: null
   })
+
+  console.log({ message })
   const [displayText, setDisplayText] = useState('')
   const [isTyping] = useAtom(isTypingAtom)
   const [hasPartialTemplate, setHasPartialTemplate] = useState(false)

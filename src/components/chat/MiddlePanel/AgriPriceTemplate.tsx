@@ -126,7 +126,7 @@ const PriceItemComponent = memo(
 
 PriceItemComponent.displayName = 'PriceItemComponent'
 
-const AgriPriceTemplate: React.FC<{ priceData: AgriPriceData; isLoading?: boolean }> = ({ priceData, isLoading = false }) => {
+const AgriPriceTemplate: React.FC<{ priceData: AgriPriceData }> = ({ priceData }) => {
   // If loading is true, show the skeleton
 
   const [activeItem, setActiveItem] = useState<number | null>(null)
