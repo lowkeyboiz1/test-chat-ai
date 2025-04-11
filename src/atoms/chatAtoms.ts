@@ -80,7 +80,7 @@ export function useChatState() {
     isLoading,
     error
   } = useAIChat({
-    api: 'http://192.168.1.164:7000/api/ai/chat-template',
+    api: `${process.env.NEXT_PUBLIC_API_URL}/ai/chat-template`,
     streamProtocol: 'data'
     // initialMessages: [
     //   {
