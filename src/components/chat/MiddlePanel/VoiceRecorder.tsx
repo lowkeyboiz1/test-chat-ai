@@ -14,9 +14,6 @@ export const VoiceRecorder = ({ onTranscriptionComplete }: VoiceRecorderProps) =
 
   useEffect(() => {
     // Check if MediaDevices API is supported
-    if (typeof window !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      setIsSupported(true)
-    }
   }, [])
 
   const startRecording = useCallback(async () => {

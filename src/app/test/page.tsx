@@ -1095,11 +1095,6 @@ const App: React.FC = () => {
                               </ul>
                             </div>
                           </div>
-                          <DialogFooter className='mt-4'>
-                            <Button className='!rounded-button bg-amber-600 whitespace-nowrap hover:bg-amber-700' onClick={() => setDialogOpen(false)}>
-                              <i className='fas fa-check mr-1.5'></i> Đã hiểu
-                            </Button>
-                          </DialogFooter>
                         </DialogContent>
                       </Dialog>
                     </div>
