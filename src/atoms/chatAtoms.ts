@@ -1,4 +1,4 @@
-import { TMessage, TCropData, TLandPlot, TWeatherData } from '@/types'
+import { TCropData, TLandPlot, TWeatherData } from '@/types'
 import { useChat as useAIChat } from '@ai-sdk/react'
 import { atom, useAtom } from 'jotai'
 import { useEffect } from 'react'
@@ -18,13 +18,46 @@ export const cropDetailOpenAtom = atom(false)
 export const selectedCropAtom = atom<TCropData | null>(null)
 export const selectedPlotAtom = atom<TLandPlot | null>(null)
 
+// Image upload atoms
+export interface ImageUpload {
+  file: File | null
+  previewUrl: string
+  detectionResults: DetectionResult[] | null
+  isDetecting: boolean
+}
+
+export interface DetectionResult {
+  label: string
+  confidence: number
+  bbox?: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+}
+
+export const imageUploadAtom = atom<ImageUpload>({
+  file: null,
+  previewUrl: '',
+  detectionResults: null,
+  isDetecting: false
+})
+
+// Internal AI message type from the SDK
+interface AIMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+}
+
 // AI messages atom
-export const aiMessagesAtom = atom<TMessage[]>([])
+export const aiMessagesAtom = atom<AIMessage[]>([])
 
 // Derived atom for transformed messages
 export const messagesAtom = atom((get) => {
   const aiMessages = get(aiMessagesAtom)
-  return aiMessages.map((msg: any, index: number) => ({
+  return aiMessages.map((msg: AIMessage, index: number) => ({
     id: parseInt(msg.id) || index + 1,
     text: msg.content,
     sender: msg.role === 'assistant' ? 'ai' : 'user',
@@ -38,27 +71,29 @@ export function useChatState() {
   const [isRecording, setIsRecording] = useAtom(isRecordingAtom)
   const [isTyping, setIsTyping] = useAtom(isTypingAtom)
   const [, setAiMessages] = useAtom(aiMessagesAtom)
+  const [imageUpload, setImageUpload] = useAtom(imageUploadAtom)
 
   const {
     messages: aiMessages,
-    input,
     handleInputChange,
     handleSubmit,
     isLoading,
     error
   } = useAIChat({
-    initialMessages: [
-      {
-        id: '1',
-        role: 'assistant',
-        content: 'Xin chào Anh Tuấn! Tôi là Đom Đóm AI, trợ lý cá nhân của anh. Hôm nay tôi có thể giúp gì cho anh về vụ lúa mùa thu?'
-      }
-    ]
+    api: 'http://192.168.1.164:7000/api/ai/chat-template',
+    streamProtocol: 'data'
+    // initialMessages: [
+    //   {
+    //     id: '1',
+    //     role: 'assistant',
+    //     content: 'Xin chào anh tên gì?'
+    //   }
+    // ]
   })
 
   // Sync AI SDK input with Jotai
   useEffect(() => {
-    handleInputChange({ target: { value: inputValue } } as any)
+    handleInputChange({ target: { value: inputValue } } as React.ChangeEvent<HTMLInputElement>)
   }, [inputValue, handleInputChange])
 
   // Update isTyping when AI response is loading or completes
@@ -68,7 +103,7 @@ export function useChatState() {
 
   // Sync AI SDK messages with Jotai
   useEffect(() => {
-    setAiMessages(aiMessages as unknown as TMessage[])
+    setAiMessages(aiMessages as AIMessage[])
   }, [aiMessages, setAiMessages])
 
   const handleSendMessage = () => {
@@ -91,6 +126,84 @@ export function useChatState() {
     })
   }
 
+  // Handle image upload
+  const handleImageUpload = (file: File) => {
+    const previewUrl = URL.createObjectURL(file)
+
+    setImageUpload({
+      file,
+      previewUrl,
+      detectionResults: null,
+      isDetecting: true
+    })
+
+    // Create form data for API request
+    const formData = new FormData()
+    formData.append('image', file)
+
+    // Send the image to our API endpoint
+    fetch('/api/image-detection', {
+      method: 'POST',
+      body: formData
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok')
+        }
+        return response.json()
+      })
+      .then((data) => {
+        // Convert API response to our DetectionResult format
+        const detectionResults: DetectionResult[] = data.detections.map(
+          (detection: { label: string; confidence: number; bbox?: { x: number; y: number; width: number; height: number } }) => ({
+            label: detection.label,
+            confidence: detection.confidence,
+            bbox: detection.bbox
+          })
+        )
+
+        setImageUpload((prev) => ({
+          ...prev,
+          detectionResults,
+          isDetecting: false
+        }))
+
+        // Add image detection result to chat
+        const detectionMessage = `Tôi đã phân tích hình ảnh của bạn và phát hiện:\n${detectionResults
+          .map((d) => `- ${d.label} (${Math.round(d.confidence * 100)}% xác suất)`)
+          .join('\n')}\n\n${data.analysis}`
+
+        handleInputChange({ target: { value: detectionMessage } } as React.ChangeEvent<HTMLInputElement>)
+        handleSubmit(new Event('submit'))
+      })
+      .catch((error) => {
+        console.error('Error processing image:', error)
+        setImageUpload((prev) => ({
+          ...prev,
+          isDetecting: false
+        }))
+
+        // Add error message to chat
+        const errorMessage = 'Xin lỗi, tôi không thể phân tích hình ảnh của bạn. Vui lòng thử lại sau.'
+        handleInputChange({ target: { value: errorMessage } } as React.ChangeEvent<HTMLInputElement>)
+        handleSubmit(new Event('submit'))
+      })
+  }
+
+  // Clear uploaded image
+  const clearImage = () => {
+    if (imageUpload.previewUrl) {
+      URL.revokeObjectURL(imageUpload.previewUrl)
+    }
+
+    setImageUpload({
+      file: null,
+      previewUrl: '',
+      detectionResults: null,
+      isDetecting: false
+    })
+  }
+
   return {
     aiMessages,
     inputValue,
@@ -99,6 +212,10 @@ export function useChatState() {
     isRecording,
     handleSendMessage,
     isLoading,
-    toggleRecording
+    toggleRecording,
+    error,
+    imageUpload,
+    handleImageUpload,
+    clearImage
   }
 }

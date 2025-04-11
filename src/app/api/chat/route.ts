@@ -11,8 +11,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { messages } = body
 
-    console.log({ messages })
-
     if (!messages) {
       return new Response(JSON.stringify({ error: 'Tin nhắn không được để trống' }), {
         status: 400,

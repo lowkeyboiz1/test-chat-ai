@@ -39,7 +39,10 @@ export default function TextToSpeech({ text, language = 'vi' }: TextToSpeechProp
         body: JSON.stringify({
           model: 'tts-1',
           input: text,
-          voice: 'nova',
+          prompt:
+            'Bạn đang là một trợ lý AI thân thiện, đang trò chuyện với một người nông dân Việt Nam. Hãy dùng lời lẽ giản dị, gần gũi như một người cháu đang hỏi chuyện ông bà hoặc chú bác ở quê. Tránh dùng từ ngữ học thuật hay kỹ thuật. Khi nói đến nông sản hay sản phẩm, hãy gọi là “sản vật”. Mỗi câu trả lời nên ngắn gọn, dễ hiểu, và nên dùng ví dụ cụ thể (như lúa, xoài, cà phê…). Tránh đưa quá nhiều thông tin cùng lúc.',
+          voice: 'coral',
+          speed: 1.05,
           response_format: 'mp3'
         })
       })

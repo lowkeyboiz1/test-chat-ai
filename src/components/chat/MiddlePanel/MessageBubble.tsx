@@ -14,14 +14,71 @@ import { WEATHER_REGEX, AGRI_PRICE_REGEX, FARMING_TECHNIQUE_REGEX } from '@/cons
 // Lazy load the large templates
 const WeatherTemplate = lazy(() => import('@/components/chat/MiddlePanel/WeatherTemplate'))
 
-interface MessageBubbleProps {
-  message: TMessage
+interface ForecastDay {
+  day: string
+  temperature: number
+  condition: string
+}
+
+interface WeatherData {
+  location: string
+  date: string
+  time: string
+  temperature: number
+  condition: string
+  humidity: number
+  windSpeed: number
+  forecast: ForecastDay[]
+}
+
+interface PriceItem {
+  product: string
+  currentPrice: number
+  previousPrice: number
+  unit: string
+  trend: 'up' | 'down' | 'stable'
+  location?: string
+}
+
+interface AgriPriceData {
+  title: string
+  date: string
+  region: string
+  market: string
+  items: PriceItem[]
+}
+
+interface FarmingTechniqueData {
+  title: string
+  crop: string
+  imageUrl?: string
+  description: string
+  suitableRegions: string[]
+  growingDuration: string
+  idealConditions: {
+    soil: string
+    temperature: string
+    water: string
+    sunlight: string
+  }
+  steps: {
+    title: string
+    description: string
+  }[]
+  tips: string[]
 }
 
 interface TemplateData {
-  weather: any | null
-  agriPrice: any | null
-  farmingTechnique: any | null
+  weather: WeatherData | null
+  agriPrice: AgriPriceData | null
+  farmingTechnique: FarmingTechniqueData | null
+}
+
+interface MessageClasses {
+  container: string
+  innerContainer: string
+  bubble: string
+  timestamp: string
 }
 
 // Loading placeholder component
@@ -34,6 +91,10 @@ const TemplateLoader = memo(function TemplateLoader() {
   )
 })
 
+interface MessageBubbleProps {
+  message: TMessage
+}
+
 // Optimized with memo for better performance
 export const MessageBubble = memo(function MessageBubble({ message }: MessageBubbleProps) {
   const [templateData, setTemplateData] = useState<TemplateData>({
@@ -42,14 +103,13 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     farmingTechnique: null
   })
 
-  console.log({ message })
   const [displayText, setDisplayText] = useState('')
   const [isTyping] = useAtom(isTypingAtom)
   const [hasPartialTemplate, setHasPartialTemplate] = useState(false)
 
   // Memoized function to check for partial templates
   const checkForPartialTemplate = useCallback((text: string) => {
-    return text.includes('@@@')
+    return text.includes('@@')
   }, [])
 
   // Process template data with error handling
@@ -124,15 +184,15 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   }, [templateData, hasPartialTemplate, isTyping])
 
   // Memoize message styling classes
-  const messageClasses = useMemo(() => {
+  const messageClasses = useMemo<MessageClasses>(() => {
     const isUser = message.sender === 'user'
     return {
       container: `flex ${isUser ? 'justify-end' : 'justify-start'}`,
       innerContainer: `flex w-full max-w-[90%] gap-2 lg:max-w-[80%] ${isUser ? 'flex-row-reverse' : ''}`,
       bubble: isUser
-        ? 'rounded-2xl p-3 shadow-sm bg-amber-600 text-white hover:bg-amber-700 transition-colors duration-200'
-        : 'rounded-2xl border border-amber-200 bg-white p-3 text-gray-800 shadow-sm transition-colors duration-200 hover:border-amber-300',
-      timestamp: `mt-1 text-xs ${isUser ? 'text-amber-100' : 'text-gray-500'}`
+        ? 'rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 hover:shadow-lime-300/40 backdrop-blur-sm'
+        : 'rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 hover:shadow-lime-300/40 backdrop-blur-sm',
+      timestamp: `mt-1.5 text-xs ${isUser ? 'text-slate-500' : 'text-slate-500'}`
     }
   }, [message.sender])
 
@@ -140,17 +200,12 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     <div className={messageClasses.container} role={message.sender === 'ai' ? 'status' : undefined}>
       <div className={messageClasses.innerContainer}>
         {message.sender === 'ai' && (
-          <Avatar className='mt-1 h-8 w-8 bg-gradient-to-r from-amber-500 to-yellow-400 shadow-md ring-1 ring-amber-300'>
-            <AvatarImage
-              src='https://readdy.ai/api/search-image?query=A traditional Vietnamese firefly AI assistant with a warm glowing light, incorporating rice paddy elements and traditional Vietnamese patterns, with a friendly appearance, suitable for a farming application for Vietnamese farmers&width=100&height=100&seq=3&orientation=squarish'
-              alt='Đom Đóm AI'
-              className='object-cover'
-              loading='lazy'
-            />
-            <AvatarFallback className='bg-gradient-to-r from-amber-500 to-yellow-400'>
-              <Bug className='text-xs text-white' />
-            </AvatarFallback>
-          </Avatar>
+          <div className='relative mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-lime-300/70 bg-gradient-to-br from-lime-100 to-white shadow-lg shadow-lime-200/30 sm:h-10 sm:w-10'>
+            <div className='flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-lime-400 to-emerald-400 sm:h-9 sm:w-9'>
+              <Bug className='h-3.5 w-3.5 text-white sm:h-4 sm:w-4' />
+            </div>
+            {isTyping && <div className='absolute inset-0 animate-pulse rounded-full bg-lime-200/60 blur-sm'></div>}
+          </div>
         )}
 
         {message.sender === 'user' ? (
@@ -162,52 +217,63 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
           <div className={messageClasses.bubble}>
             {/* Only show plain text if we should not hide it */}
             {!shouldHideText && displayText && (
-              <div className='flex items-start justify-between gap-2'>
+              <div className='flex items-start justify-between gap-3'>
                 <p className='flex-1 leading-relaxed whitespace-pre-line'>{displayText}</p>
-                {!isTyping && displayText && <TextToSpeech text={displayText} />}
+                {!isTyping && displayText && (
+                  <div className='mt-0.5'>
+                    <TextToSpeech text={displayText} />
+                  </div>
+                )}
               </div>
             )}
 
             {/* Show templates if data is available - using Suspense for better UX */}
             <Suspense fallback={<TemplateLoader />}>
               {templateData.weather && (
-                <div className='mt-3 w-full'>
+                <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                   <WeatherTemplate weatherData={templateData.weather} />
                 </div>
               )}
             </Suspense>
 
             {templateData.agriPrice && (
-              <div className='mt-3 w-full'>
+              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <AgriPriceTemplate priceData={templateData.agriPrice} />
               </div>
             )}
 
             {templateData.farmingTechnique && (
-              <div className='mt-3 w-full'>
+              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
               </div>
             )}
 
             {/* If we have partial template and are still typing, show a placeholder */}
-            {hasPartialTemplate && isTyping && !hasTemplate && <TemplateLoader />}
+            {hasPartialTemplate && isTyping && !hasTemplate && (
+              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
+                <TemplateLoader />
+              </div>
+            )}
 
             <div className={messageClasses.timestamp}>{formatTime(message.timestamp)}</div>
           </div>
         )}
 
         {message.sender === 'user' && (
-          <Avatar className='mt-1 h-8 w-8 shadow-md ring-1 ring-green-300'>
-            <AvatarImage
-              src='https://readdy.ai/api/search-image?query=Portrait of a Vietnamese farmer in his 40s, wearing a traditional conical hat, with a weathered face showing experience and wisdom, standing in a lush green rice field during golden hour, with mountains in the background&width=100&height=100&seq=2&orientation=squarish'
-              alt='Anh Tuấn'
-              className='object-cover'
-              loading='lazy'
-            />
-            <AvatarFallback className='bg-green-100 text-green-700'>
-              <User className='text-xs text-green-700' />
-            </AvatarFallback>
-          </Avatar>
+          <div className='relative mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-lime-300/70 bg-gradient-to-br from-lime-100 to-white shadow-lg shadow-lime-200/30 sm:h-10 sm:w-10'>
+            <Avatar className='h-7 w-7 bg-gradient-to-r from-lime-400 to-emerald-400 sm:h-9 sm:w-9'>
+              <AvatarImage
+                src='https://readdy.ai/api/search-image?query=Portrait of a Vietnamese farmer in his 40s, wearing a traditional conical hat, with a weathered face showing experience and wisdom, standing in a lush green rice field during golden hour, with mountains in the background&width=100&height=100&seq=2&orientation=squarish'
+                alt='Anh Tuấn'
+                className='object-cover'
+                loading='lazy'
+              />
+              <AvatarFallback className='bg-gradient-to-r from-lime-400 to-emerald-400'>
+                <User className='h-3 w-3 text-white sm:h-4 sm:w-4' />
+              </AvatarFallback>
+            </Avatar>
+            <div className='absolute inset-0 animate-pulse rounded-full bg-lime-200/50'></div>
+          </div>
         )}
       </div>
     </div>

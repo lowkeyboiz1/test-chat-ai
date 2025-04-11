@@ -1,6 +1,6 @@
 'use client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Bug, Leaf, Cloud, Sun, Droplets, Moon, Info } from 'lucide-react'
+import { Cloud, Droplets, Info, Moon, Sun, Wheat } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
@@ -12,6 +12,7 @@ export const ChatHeader = memo(function ChatHeader() {
   const [loaded, setLoaded] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const particlesRef = useRef<HTMLDivElement>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
   // Memoize the current time for consistency
   const currentTime = useMemo(() => new Date(), [])
@@ -25,75 +26,69 @@ export const ChatHeader = memo(function ChatHeader() {
     else return 'night' as TimeOfDay
   }, [])
 
-  // Optimized particle creation
+  // Optimized particle creation with reduced frequency on mobile
   const createParticle = useCallback(() => {
     if (!particlesRef.current) return
 
     const particle = document.createElement('div')
-    particle.className = 'absolute rounded-full bg-cyan-400/30 pointer-events-none'
+    particle.className = 'absolute rounded-full bg-[#2EAF5D]/40 pointer-events-none'
 
-    // Random size between 3px and 6px
-    const size = Math.random() * 3 + 3
+    // Smaller particles on mobile
+    const size = isMobile ? Math.random() * 3 + 2 : Math.random() * 4 + 3
     particle.style.width = `${size}px`
     particle.style.height = `${size}px`
 
-    // Random position along the header
     particle.style.left = `${Math.random() * 100}%`
     particle.style.bottom = '0px'
 
-    // Random animation duration between 3s and 6s
-    const duration = Math.random() * 3000 + 3000
+    // Shorter animation duration on mobile
+    const duration = isMobile ? Math.random() * 2000 + 2000 : Math.random() * 3000 + 3000
     particle.style.animation = `float ${duration}ms ease-in-out forwards`
 
     particlesRef.current.appendChild(particle)
 
-    // Remove particle after animation completes
-    setTimeout(() => {
-      particle.remove()
-    }, duration)
-  }, [])
+    setTimeout(() => particle.remove(), duration)
+  }, [isMobile])
 
   useEffect(() => {
-    // Setup animation and time of day detection
-    const glowInterval = setInterval(() => {
-      setGlowing((prev) => !prev)
-    }, 2000)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
 
-    // Initial time of day
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+
+    const glowInterval = setInterval(() => setGlowing((prev) => !prev), 2000)
     setTimeOfDay(updateTimeOfDay())
 
-    // Update time of day every minute
-    const timeInterval = setInterval(() => {
-      setTimeOfDay(updateTimeOfDay())
-    }, 60000)
+    const timeInterval = setInterval(() => setTimeOfDay(updateTimeOfDay()), 60000)
 
-    // Create particles at optimized interval
-    const particleInterval = setInterval(createParticle, 300)
+    // Adjust particle interval based on device
+    const particleInterval = setInterval(createParticle, isMobile ? 400 : 250)
 
-    // Simplified loading sequence
     setLoaded(true)
     setScanning(true)
     setTimeout(() => setShowDetails(true), 300)
 
-    // Cleanup all intervals
     return () => {
+      window.removeEventListener('resize', checkMobile)
       clearInterval(glowInterval)
       clearInterval(timeInterval)
       clearInterval(particleInterval)
     }
-  }, [updateTimeOfDay, createParticle])
+  }, [updateTimeOfDay, createParticle, isMobile])
 
-  // Memoize UI elements for better performance
   const timeIcon = useMemo(() => {
+    const iconClass = 'h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#2EAF5D]'
     switch (timeOfDay) {
       case 'morning':
-        return <Sun className='h-4 w-4 text-cyan-400' aria-hidden='true' />
+        return <Sun className={`${iconClass} text-amber-400`} aria-hidden='true' />
       case 'afternoon':
-        return <Sun className='h-4 w-4 text-amber-400' aria-hidden='true' />
+        return <Sun className={`${iconClass} text-amber-500`} aria-hidden='true' />
       case 'evening':
-        return <Cloud className='h-4 w-4 text-cyan-400' aria-hidden='true' />
+        return <Cloud className={`${iconClass} text-indigo-300`} aria-hidden='true' />
       case 'night':
-        return <Moon className='h-4 w-4 text-cyan-400' aria-hidden='true' />
+        return <Moon className={`${iconClass} text-indigo-400`} aria-hidden='true' />
     }
   }, [timeOfDay])
 
@@ -122,27 +117,25 @@ export const ChatHeader = memo(function ChatHeader() {
             opacity: 1;
           }
           100% {
-            transform: translateY(-100px) rotate(360deg);
+            transform: translateY(-120px) rotate(360deg);
             opacity: 0;
           }
         }
-
         @keyframes pulse {
           0%,
           100% {
             transform: scale(1);
           }
           50% {
-            transform: scale(1.05);
+            transform: scale(1.08);
           }
         }
-
         @keyframes glitch {
           0% {
             opacity: 0;
           }
           7% {
-            opacity: 0.3;
+            opacity: 0.4;
           }
           10% {
             opacity: 0;
@@ -151,90 +144,103 @@ export const ChatHeader = memo(function ChatHeader() {
             opacity: 0;
           }
           95% {
-            opacity: 0.3;
+            opacity: 0.4;
           }
           100% {
             opacity: 0;
           }
         }
+        @keyframes shimmer {
+          0% {
+            background-position: -200% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
       `}</style>
 
-      {/* Main container with holographic effect */}
-      <div className={`relative border-b border-cyan-500/30 backdrop-blur-md transition-all duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
-        {/* Background gradients and effects */}
-        <div className='absolute inset-0 bg-gradient-to-b from-cyan-950/80 via-slate-900/90 to-purple-950/80'></div>
-        <div className='absolute inset-0 bg-[linear-gradient(0deg,rgba(0,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,255,255,0.05)_1px,transparent_1px)] bg-[size:20px_20px]'></div>
+      <div
+        className={`relative border-b border-white/20 bg-[#2EAF5D] backdrop-blur-md transition-all duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        // style={{ background: 'linear-gradient(180deg, rgba(46, 175, 93, 0.15) 0%, rgba(46, 175, 93, 0.1) 100%)' }}
+      >
+        {/* <div className='absolute inset-0 bg-gradient-to-b from-[#2EAF5D]/25 via-[#2EAF5D]/20 to-[#2EAF5D]/15'></div> */}
 
-        {/* Scanning effect */}
         <div
-          className={`absolute inset-0 h-full w-full bg-gradient-to-b from-transparent via-cyan-400/20 to-transparent transition-all duration-500 ease-in-out ${scanning ? 'translate-y-full' : '-translate-y-full'}`}
+          className={`absolute inset-0 h-full w-full bg-gradient-to-b from-transparent via-[#2EAF5D]/35 to-transparent transition-all duration-700 ease-in-out ${scanning ? 'translate-y-full' : '-translate-y-full'}`}
         ></div>
 
-        {/* Particles container */}
-        <div ref={particlesRef} className='pointer-events-none absolute inset-0 overflow-hidden'></div>
+        <div ref={particlesRef} className='pointer-events-none absolute inset-0 overflow-hidden bg-[#2EAF5D]/5'></div>
 
-        {/* Header content */}
-        <div className='relative z-10 mx-auto flex max-w-4xl items-center justify-between p-3'>
-          <div className='flex items-center gap-3'>
+        <div className='relative z-10 mx-auto flex max-w-4xl items-center justify-between p-2 sm:p-3'>
+          <div className='flex items-center gap-2 sm:gap-3'>
             <div
-              className={`relative flex h-10 w-10 items-center justify-center rounded-full border border-cyan-500/50 bg-cyan-950 transition-all duration-300 ${
-                glowing ? 'shadow-lg shadow-cyan-500/30' : ''
+              className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/60 bg-white/10 transition-all duration-300 sm:h-12 sm:w-12 ${
+                glowing ? 'shadow-lg shadow-white/30' : ''
               }`}
             >
-              <Avatar className='h-9 w-9 bg-gradient-to-r from-cyan-500 to-purple-500'>
+              <Avatar className='h-8 w-8 bg-gradient-to-br from-white/90 to-white/70 sm:h-10 sm:w-10'>
                 <AvatarImage
                   src='https://readdy.ai/api/search-image?query=A traditional Vietnamese firefly AI assistant with a warm glowing light, incorporating rice paddy elements and traditional Vietnamese patterns, with a friendly appearance, suitable for a farming application for Vietnamese farmers&width=100&height=100&seq=3&orientation=squarish'
                   alt='Đom Đóm AI'
                   className={`object-cover transition-all duration-300 ${glowing ? 'animate-pulse' : ''}`}
                   loading='lazy'
                 />
-                <AvatarFallback className='bg-gradient-to-r from-cyan-500 to-purple-400'>
-                  <Bug className='h-4 w-4 text-white' />
+                <AvatarFallback className='bg-gradient-to-br from-white/90 to-white/70'>
+                  <Wheat className='h-4 w-4 text-[#2EAF5D] sm:h-5 sm:w-5' />
                 </AvatarFallback>
               </Avatar>
-              {glowing && <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-cyan-400/20'></div>}
+              {glowing && <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-white/40 blur-md'></div>}
+              <div className='absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white sm:h-5 sm:w-5'>
+                <div className='h-2 w-2 rounded-full bg-[#2EAF5D] sm:h-2.5 sm:w-2.5'></div>
+              </div>
             </div>
 
             <div className='flex flex-col'>
-              <div className='flex items-center gap-1.5'>
-                <h2 className='bg-gradient-to-r from-cyan-300 to-cyan-100 bg-clip-text text-lg font-bold text-transparent'>Đom Đóm AI</h2>
-                <div className='flex items-center gap-1'>
-                  <div className='rounded-full bg-gradient-to-r from-cyan-700 to-purple-600 px-1.5 py-0.5 text-[10px] font-medium text-white'>
+              <div className='flex items-center gap-1.5 sm:gap-2'>
+                <h2 className='text-lg font-bold text-white sm:text-xl'>Đom Đóm AI</h2>
+                <div className='flex items-center gap-1.5'>
+                  <div className='flex items-center gap-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium text-[#2EAF5D] shadow-sm shadow-black/5 sm:text-xs'>
                     <span>Beta</span>
                   </div>
-                  <div className='flex items-center gap-0.5 rounded-full border border-cyan-500/30 bg-cyan-900/30 px-1.5 py-0.5 text-xs font-medium text-cyan-300'>
-                    <Leaf className='h-2.5 w-2.5' aria-hidden='true' />
+                  <div className='hidden items-center gap-1 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-medium text-white shadow-sm shadow-black/5 backdrop-blur-sm sm:flex'>
+                    <Wheat className='h-3.5 w-3.5' aria-hidden='true' />
                     <span>Nông nghiệp</span>
                   </div>
                 </div>
               </div>
 
-              {/* Time info with simplified style */}
-              <div className={`mt-2 transition-all duration-300 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
-                <div className='mt-1 flex items-center space-x-2'>
-                  <div className='flex items-center gap-1 text-xs text-cyan-400'>
+              <div className={`mt-1 transition-all duration-300 sm:mt-1.5 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
+                <div className='flex items-center space-x-1.5 sm:space-x-2'>
+                  <div className='flex items-center gap-1 text-[10px] text-white/90 sm:text-xs'>
                     {timeIcon}
                     <span>{greeting}</span>
                   </div>
-                  <span className='mx-1 text-[10px] text-cyan-500/50' aria-hidden='true'>
+                  <span className='text-[8px] text-white/40 sm:text-[10px]' aria-hidden='true'>
                     •
                   </span>
-                  <div className='flex items-center gap-1 text-xs text-cyan-400'>
-                    <Droplets className='h-3 w-3 text-cyan-400' aria-hidden='true' />
-                    <span>Thời tiết hôm nay đẹp</span>
+                  <div className='flex items-center gap-1 text-[10px] text-white/90 sm:text-xs'>
+                    <Droplets className='h-3 w-3 text-white sm:h-3.5 sm:w-3.5' aria-hidden='true' />
+                    <span className='hidden sm:inline'>Thời tiết hôm nay đẹp</span>
+                    <span className='sm:hidden'>Đẹp trời</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className='flex items-center gap-3'>
-            <div className={`flex items-center transition-all duration-300 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
-              <div className='rounded-lg border border-cyan-500/20 bg-cyan-950/30 px-3 py-1.5'>
-                <div className='flex items-center gap-1.5'>
-                  <Info className='h-3.5 w-3.5 text-cyan-400/70' />
-                  <span className='text-xs text-cyan-100'>
-                    {currentTime.toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric' })}
+          <div className='flex items-center'>
+            <div className={`transition-all duration-300 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
+              <div className='rounded-lg border border-white/20 bg-white/10 px-2 py-1 sm:px-3 sm:py-1.5'>
+                <div className='flex items-center gap-1 sm:gap-1.5'>
+                  <Info className='h-3 w-3 text-white/90 sm:h-3.5 sm:w-3.5' />
+                  <span className='text-[10px] text-white sm:text-xs'>
+                    {currentTime.toLocaleDateString('vi-VN', {
+                      weekday: isMobile ? 'short' : 'long',
+                      day: 'numeric',
+                      month: 'numeric',
+                      year: 'numeric'
+                    })}
                   </span>
                 </div>
               </div>
@@ -242,22 +248,28 @@ export const ChatHeader = memo(function ChatHeader() {
           </div>
         </div>
 
-        {/* Decorative elements */}
-        <div className='absolute top-0 right-0 -z-10 h-32 w-32 rounded-full bg-cyan-500/10 blur-3xl'></div>
-        <div className='absolute bottom-0 left-0 -z-10 h-32 w-32 rounded-full bg-purple-500/10 blur-3xl'></div>
+        <div className='absolute top-0 right-0 -z-10 h-32 w-32 rounded-full bg-white/10 blur-3xl sm:h-40 sm:w-40'></div>
+        <div className='absolute bottom-0 left-0 -z-10 h-32 w-32 rounded-full bg-white/10 blur-3xl sm:h-40 sm:w-40'></div>
 
-        {/* Scan lines effect */}
-        <div className='pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(transparent_0%,rgba(0,255,255,0.05)_50%,transparent_100%)] bg-[size:100%_4px]'></div>
-
-        {/* Glitch effect */}
-        <div className='pointer-events-none absolute inset-0 z-20 opacity-20 mix-blend-screen'>
+        <div className='pointer-events-none absolute inset-0 z-20 opacity-30 mix-blend-overlay'>
           <div
             className='absolute inset-0 animate-pulse'
             style={{
-              backgroundImage: 'linear-gradient(0deg, transparent 0%, rgba(0, 255, 255, 0.2) 2%, transparent 3%)',
+              backgroundImage: 'linear-gradient(0deg, transparent 0%, rgba(255, 255, 255, 0.4) 2%, transparent 3%)',
               backgroundSize: '100% 100%',
               backgroundRepeat: 'no-repeat',
-              animation: 'glitch 5s infinite'
+              animation: 'glitch 4s infinite'
+            }}
+          ></div>
+        </div>
+
+        <div className='pointer-events-none absolute inset-0 z-10 opacity-20'>
+          <div
+            className='absolute inset-0'
+            style={{
+              backgroundImage: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 8s infinite linear'
             }}
           ></div>
         </div>
