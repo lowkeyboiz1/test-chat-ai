@@ -19,7 +19,7 @@ export const SuggestedQuestions = memo(function SuggestedQuestions({ questions, 
   if (!questions.length) return null
 
   return (
-    <div className='mx-auto mt-4 max-w-4xl' role='region' aria-label='Suggested questions'>
+    <div className='mx-auto mt-4' role='region' aria-label='Suggested questions'>
       <p className='mb-2 text-center text-xs font-medium text-amber-800'>Câu hỏi gợi ý:</p>
       <div className='flex flex-wrap items-center justify-center gap-2'>
         {questions.map((question, index) => (

@@ -2,34 +2,13 @@
 
 import type React from 'react'
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { Calendar, DropletIcon, ShowerHead, SunIcon, ThermometerIcon, MapPin, Sprout } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-
-interface Step {
-  title: string
-  description: string
-}
-
-interface FarmingTechniqueData {
-  title: string
-  crop: string
-  imageUrl?: string
-  description: string
-  suitableRegions: string[]
-  growingDuration: string
-  idealConditions: {
-    soil: string
-    temperature: string
-    water: string
-    sunlight: string
-  }
-  steps: Step[]
-  tips: string[]
-}
+import { IFarmingTechniqueData } from '@/types/farmingTechnique'
+import { Calendar, DropletIcon, MapPin, ShowerHead, Sprout, SunIcon, ThermometerIcon } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 interface FarmingTechniqueTemplateProps {
-  techniqueData?: FarmingTechniqueData
+  techniqueData?: IFarmingTechniqueData
   isLoading?: boolean
 }
 

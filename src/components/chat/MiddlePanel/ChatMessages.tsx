@@ -37,7 +37,7 @@ export const ChatMessages = memo(function ChatMessages() {
 
   return (
     <ScrollArea className='h-full w-full overflow-auto'>
-      <div className='relative mx-auto max-w-4xl space-y-4 p-2 sm:space-y-6 sm:p-4'>
+      <div className='relative mx-auto space-y-4 p-2 sm:space-y-6 sm:p-4'>
         {/* Background effects */}
         <div className='fixed inset-0 -z-10'>
           <div className='absolute top-0 left-1/2 h-40 w-full -translate-x-1/2 rounded-full bg-lime-200 opacity-30 blur-[100px]'></div>

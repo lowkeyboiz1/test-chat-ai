@@ -580,7 +580,7 @@ const App: React.FC = () => {
               </div>
             </div>
             <ScrollArea className='flex-1 bg-gray-50 p-4'>
-              <div className='mx-auto max-w-4xl space-y-6'>
+              <div className='mx-auto space-y-6'>
                 <div className='my-4 text-center'>
                   <Badge variant='outline' className='bg-gray-100 text-gray-500'>
                     {format(new Date(), 'EEEE, dd/MM/yyyy', { locale: vi })}
@@ -644,7 +644,7 @@ const App: React.FC = () => {
               </div>
             </ScrollArea>
             <div className='border-t border-gray-200 bg-white p-4'>
-              <div className='mx-auto max-w-4xl space-y-3'>
+              <div className='mx-auto space-y-3'>
                 <div className='flex flex-wrap gap-2'>
                   {suggestedQuestions.map((question, index) => (
                     <Button

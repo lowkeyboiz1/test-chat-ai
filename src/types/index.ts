@@ -12,6 +12,26 @@ export type TWeatherData = {
   icon: string
 }
 
+export type TArgiNewsItem = {
+  title: string
+  date: string
+  source: string
+  content: string
+  category: string
+  impact: string
+  relatedProducts: string[]
+  recommendations: string[]
+}
+
+export type TArgiNewsData = {
+  news: TArgiNewsItem[]
+}
+
+export type TArgiNewsTemplateProps = {
+  newsData?: TArgiNewsData
+  isLoading?: boolean
+}
+
 export type TCropData = {
   name: string
   progress: number
@@ -25,4 +45,10 @@ export type TLandPlot = {
   area: string
   location: string
   crops: TCropData[]
+}
+
+export type TForecastDay = {
+  day: string
+  temperature: number
+  condition: string
 }

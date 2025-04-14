@@ -172,7 +172,7 @@ export const ChatHeader = memo(function ChatHeader() {
 
         <div ref={particlesRef} className='pointer-events-none absolute inset-0 overflow-hidden bg-[#2EAF5D]/5'></div>
 
-        <div className='relative z-10 mx-auto flex max-w-4xl items-center justify-between p-2 sm:p-3'>
+        <div className='relative z-10 mx-auto flex items-center justify-between p-2 sm:p-3'>
           <div className='flex items-center gap-2 sm:gap-3'>
             <div
               className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/60 bg-white/10 transition-all duration-300 sm:h-12 sm:w-12 ${
