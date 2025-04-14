@@ -19,6 +19,13 @@ export const ChatInput = memo(function ChatInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [textareaHeight, setTextareaHeight] = useState(MIN_TEXTAREA_HEIGHT)
 
+  // Expose focus functionality
+  const focusInput = useCallback(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+    }
+  }, [])
+
   const { register, handleSubmit, watch, reset } = useForm<ChatFormValues>({
     defaultValues: {
       message: inputValue
@@ -57,6 +64,8 @@ export const ChatInput = memo(function ChatInput() {
     setTextareaHeight(MIN_TEXTAREA_HEIGHT)
     if (textareaRef.current) {
       textareaRef.current.style.height = `${MIN_TEXTAREA_HEIGHT}px`
+      // Focus back on the textarea
+      textareaRef.current.focus()
     }
   }, [handleSendMessage, reset])
 
@@ -79,7 +88,7 @@ export const ChatInput = memo(function ChatInput() {
   }, [adjustTextareaHeight, messageValue])
 
   return (
-    <div className='sticky bottom-0 z-50'>
+    <div className='fixed right-0 bottom-0 left-0 z-50'>
       <div className='relative overflow-hidden border border-amber-200/50 bg-white/90 shadow-lg transition-shadow duration-300 hover:shadow-xl'>
         <form onSubmit={handleSubmit(onSubmit)} className='relative px-4 py-3'>
           <div className='flex items-center gap-3'>
@@ -91,7 +100,7 @@ export const ChatInput = memo(function ChatInput() {
               }}
               onKeyDown={handleKeyDown}
               placeholder='Nhập câu hỏi của bạn...'
-              className='scrollbar-thin scrollbar-thumb-amber-200 scrollbar-track-transparent flex-1 resize-none border-none bg-transparent text-sm transition-all duration-300 outline-none placeholder:text-amber-400/70 focus:ring-0'
+              className='scrollbar-thin scrollbar-thumb-amber-200 scrollbar-track-transparent flex-1 resize-none border-none bg-transparent text-base transition-all duration-300 outline-none placeholder:text-base placeholder:text-amber-400/70 focus:ring-0'
               style={{
                 height: `${textareaHeight}px`,
                 maxHeight: `${MAX_TEXTAREA_HEIGHT}px`,
@@ -103,7 +112,7 @@ export const ChatInput = memo(function ChatInput() {
               }}
               aria-label='Chat input'
             />
-            <ChatInputToolbar />
+            <ChatInputToolbar onFocusInput={focusInput} />
           </div>
         </form>
       </div>

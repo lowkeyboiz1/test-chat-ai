@@ -1,16 +1,10 @@
 'use client'
 
-import type React from 'react'
-
+import '@/lib/animations.css'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
-import { IFarmingTechniqueData } from '@/types/farmingTechnique'
+import { FarmingTechniqueTemplateProps } from '@/types/templates'
 import { Calendar, DropletIcon, MapPin, ShowerHead, Sprout, SunIcon, ThermometerIcon } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-interface FarmingTechniqueTemplateProps {
-  techniqueData?: IFarmingTechniqueData
-  isLoading?: boolean
-}
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ techniqueData, isLoading = false }) => {
   const [loaded, setLoaded] = useState(false)
@@ -103,45 +97,10 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
 
   return (
     <div className='flex min-h-[500px] w-full items-center justify-center overflow-hidden rounded-xl bg-gradient-to-b from-emerald-950 to-slate-950 p-4 sm:rounded-3xl sm:p-6'>
-      <style jsx global>{`
-        @keyframes float {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 0.7;
-          }
-          100% {
-            transform: translateY(-100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-        @keyframes glitch {
-          0% {
-            background-position: 0 0;
-          }
-          100% {
-            background-position: 0 100%;
-          }
-        }
-      `}</style>
-
       <div className='relative w-full max-w-lg'>
         {/* Ambient background effects */}
-        <div className='absolute top-0 right-0 -z-10 h-32 w-32 rounded-full bg-emerald-400/10 blur-3xl sm:h-40 sm:w-40'></div>
-        <div className='absolute bottom-0 left-0 -z-10 h-32 w-32 rounded-full bg-emerald-400/10 blur-3xl sm:h-40 sm:w-40'></div>
+        <div className='absolute top-0 right-0 -z-10 h-32 w-32 rounded-full bg-emerald-400/10 sm:h-40 sm:w-40'></div>
+        <div className='absolute bottom-0 left-0 -z-10 h-32 w-32 rounded-full bg-emerald-400/10 sm:h-40 sm:w-40'></div>
 
         {/* Main container */}
         <div
@@ -160,7 +119,7 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
                   }`}
                 >
                   <Sprout className={`h-5 w-5 text-emerald-400 sm:h-5 sm:w-5 ${glowing ? 'animate-pulse' : ''}`} />
-                  {glowing && <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-emerald-400/40 blur-md'></div>}
+                  {glowing && <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-emerald-400/40'></div>}
                 </div>
                 <div>
                   <h3 className='bg-gradient-to-r from-emerald-300 to-emerald-100 bg-clip-text text-xl font-bold text-transparent sm:text-xl'>
@@ -182,12 +141,12 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
                 <div className='h-px flex-grow bg-gradient-to-l from-emerald-500/50 to-transparent'></div>
               </div>
 
-              <div className='mt-2.5 rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-3 backdrop-blur-sm sm:p-2.5'>
+              <div className='mt-2.5 rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-3 sm:p-2.5'>
                 <div className='mb-1 text-xs text-emerald-400/70 uppercase'>Loại cây trồng</div>
                 <div className='text-sm font-medium text-emerald-100'>{techniqueData?.crop}</div>
               </div>
 
-              <div className='mt-3 rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-3 backdrop-blur-sm sm:p-3'>
+              <div className='mt-3 rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-3 sm:p-3'>
                 <div className='mb-1 text-xs text-emerald-400/70 uppercase'>MÔ TẢ</div>
                 <p className='text-sm text-emerald-100 italic sm:text-sm'>{techniqueData?.description}</p>
               </div>
@@ -233,7 +192,7 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
               {idealConditionsData.map((condition) => (
                 <div
                   key={condition.id}
-                  className={`group relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-900/30 sm:p-3 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                  className={`group relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-900/30 sm:p-3 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                 >
                   <div className='relative z-10 flex items-center space-x-3'>
                     <div className='rounded-full border border-emerald-500/30 bg-emerald-900/50 p-2'>{condition.icon}</div>
@@ -257,7 +216,7 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
                 <span>QUY TRÌNH THỰC HIỆN</span>
                 <div className='h-px w-8 bg-gradient-to-l from-emerald-500/50 to-transparent sm:w-12'></div>
               </div>
-              <div className='rounded border border-emerald-500/30 bg-emerald-950/50 px-2 py-1 text-[10px] backdrop-blur-sm sm:px-2 sm:text-[10px]'>
+              <div className='rounded border border-emerald-500/30 bg-emerald-950/50 px-2 py-1 text-[10px] sm:px-2 sm:text-[10px]'>
                 {techniqueData?.steps.length} BƯỚC
               </div>
             </div>
@@ -267,7 +226,7 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
                 <AccordionItem
                   key={index}
                   value={`step-${index}`}
-                  className={`relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-950/30 backdrop-blur-sm transition-all duration-300 hover:bg-emerald-900/20 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                  className={`relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-950/30 transition-all duration-300 hover:bg-emerald-900/20 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                 >
                   <AccordionTrigger className='px-3 py-2 hover:no-underline'>
                     <div className='flex items-center space-x-3'>
@@ -299,7 +258,7 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
               {techniqueData?.tips.map((tip, index) => (
                 <div
                   key={index}
-                  className={`group relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 backdrop-blur-sm transition-all duration-300 hover:bg-emerald-900/20 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                  className={`group relative overflow-hidden rounded-xl border border-emerald-500/20 bg-emerald-950/30 p-3 transition-all duration-300 hover:bg-emerald-900/20 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                 >
                   <div className='relative z-10 flex items-start space-x-3'>
                     <div className='flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-900/50 text-xs text-emerald-300'>
@@ -326,7 +285,7 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
               {techniqueData?.suitableRegions.map((region, index) => (
                 <div
                   key={index}
-                  className={`group relative overflow-hidden rounded-full border border-emerald-500/20 bg-emerald-950/30 px-3.5 py-2 backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-900/20 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
+                  className={`group relative overflow-hidden rounded-full border border-emerald-500/20 bg-emerald-950/30 px-3.5 py-2 transition-all duration-300 hover:border-emerald-400/40 hover:bg-emerald-900/20 ${showDetails ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
                 >
                   <div className='relative z-10 flex items-center space-x-1.5'>
                     <MapPin className='h-4 w-4 text-emerald-400' />

@@ -300,7 +300,7 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
   }, [audioLevel, recordingPhase, pulseEffect, barGradients])
 
   return (
-    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl'>
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/80'>
       <div
         className={`w-[90%] max-w-sm overflow-hidden rounded-3xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-cyan-950 to-slate-900 shadow-xl shadow-cyan-500/20 transition-all duration-300 ${loaded ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
       >
@@ -308,7 +308,7 @@ const RecordingUI: React.FC<RecordingUIProps> = ({ onStop, onCancel, transcript 
         <div className='relative border-b border-cyan-500/30 bg-gradient-to-r from-cyan-900/50 to-cyan-950/50 p-3 sm:p-4'>
           <div className='flex items-center space-x-3'>
             <div className='relative'>
-              <div className='absolute inset-0 animate-pulse rounded-full bg-cyan-500 blur-md'></div>
+              <div className='absolute inset-0 animate-pulse rounded-full bg-cyan-500'></div>
               <div className='relative flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/50 bg-cyan-950 sm:h-9 sm:w-9'>
                 <Mic className='h-4 w-4 text-cyan-400 sm:h-5 sm:w-5' />
               </div>

@@ -46,9 +46,3 @@ export type TLandPlot = {
   location: string
   crops: TCropData[]
 }
-
-export type TForecastDay = {
-  day: string
-  temperature: number
-  condition: string
-}

@@ -8,7 +8,11 @@ import { inputValueAtom, useChatState } from '@/atoms/chatAtoms'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import WhisperRecorder from './WhisperRecorder'
 
-export const ChatInputToolbar = memo(function ChatInputToolbar() {
+interface ChatInputToolbarProps {
+  onFocusInput: () => void
+}
+
+export const ChatInputToolbar = memo(function ChatInputToolbar({ onFocusInput }: ChatInputToolbarProps) {
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
   const { handleSendMessage, isTyping, handleImageUpload } = useChatState()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -17,8 +21,9 @@ export const ChatInputToolbar = memo(function ChatInputToolbar() {
   const onSendMessage = useCallback(() => {
     if (inputValue.trim() && !isTyping) {
       handleSendMessage()
+      onFocusInput()
     }
-  }, [inputValue, handleSendMessage, isTyping])
+  }, [inputValue, handleSendMessage, isTyping, onFocusInput])
 
   // Defines if send button should be disabled
   const isSendDisabled = !inputValue.trim() || isTyping

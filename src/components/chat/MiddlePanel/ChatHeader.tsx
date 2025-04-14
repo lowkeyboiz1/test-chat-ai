@@ -2,13 +2,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Cloud, Droplets, Info, Moon, Sun, Wheat } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import '@/lib/animations.css'
 
 type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night'
 
 export const ChatHeader = memo(function ChatHeader() {
   const [glowing, setGlowing] = useState(false)
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('morning')
-  const [scanning, setScanning] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const particlesRef = useRef<HTMLDivElement>(null)
@@ -67,7 +67,6 @@ export const ChatHeader = memo(function ChatHeader() {
     const particleInterval = setInterval(createParticle, isMobile ? 400 : 250)
 
     setLoaded(true)
-    setScanning(true)
     setTimeout(() => setShowDetails(true), 300)
 
     return () => {
@@ -106,70 +105,8 @@ export const ChatHeader = memo(function ChatHeader() {
   }, [timeOfDay])
 
   return (
-    <header className='sticky top-0 z-50 overflow-hidden transition-all duration-300' role='banner'>
-      <style jsx global>{`
-        @keyframes float {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(-120px) rotate(360deg);
-            opacity: 0;
-          }
-        }
-        @keyframes pulse {
-          0%,
-          100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.08);
-          }
-        }
-        @keyframes glitch {
-          0% {
-            opacity: 0;
-          }
-          7% {
-            opacity: 0.4;
-          }
-          10% {
-            opacity: 0;
-          }
-          92% {
-            opacity: 0;
-          }
-          95% {
-            opacity: 0.4;
-          }
-          100% {
-            opacity: 0;
-          }
-        }
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-      `}</style>
-
-      <div
-        className={`relative border-b border-white/20 bg-[#2EAF5D] backdrop-blur-md transition-all duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-        // style={{ background: 'linear-gradient(180deg, rgba(46, 175, 93, 0.15) 0%, rgba(46, 175, 93, 0.1) 100%)' }}
-      >
-        {/* <div className='absolute inset-0 bg-gradient-to-b from-[#2EAF5D]/25 via-[#2EAF5D]/20 to-[#2EAF5D]/15'></div> */}
-
-        <div
-          className={`absolute inset-0 h-full w-full bg-gradient-to-b from-transparent via-[#2EAF5D]/35 to-transparent transition-all duration-700 ease-in-out ${scanning ? 'translate-y-full' : '-translate-y-full'}`}
-        ></div>
-
+    <header className='sticky top-0 z-50 w-full transition-all duration-300' role='banner'>
+      <div className={`relative border-b border-white/20 bg-[#2EAF5D] backdrop-blur-sm transition-all duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
         <div ref={particlesRef} className='pointer-events-none absolute inset-0 overflow-hidden bg-[#2EAF5D]/5'></div>
 
         <div className='relative z-10 mx-auto flex items-center justify-between p-2 sm:p-3'>
@@ -190,7 +127,7 @@ export const ChatHeader = memo(function ChatHeader() {
                   <Wheat className='h-4 w-4 text-[#2EAF5D] sm:h-5 sm:w-5' />
                 </AvatarFallback>
               </Avatar>
-              {glowing && <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-white/40 blur-md'></div>}
+              {glowing && <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-white/40'></div>}
               <div className='absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-white sm:h-5 sm:w-5'>
                 <div className='h-2 w-2 rounded-full bg-[#2EAF5D] sm:h-2.5 sm:w-2.5'></div>
               </div>
@@ -203,7 +140,7 @@ export const ChatHeader = memo(function ChatHeader() {
                   <div className='flex items-center gap-0.5 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-medium text-[#2EAF5D] shadow-sm shadow-black/5 sm:text-xs'>
                     <span>Beta</span>
                   </div>
-                  <div className='hidden items-center gap-1 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-medium text-white shadow-sm shadow-black/5 backdrop-blur-sm sm:flex'>
+                  <div className='hidden items-center gap-1 rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-xs font-medium text-white shadow-sm shadow-black/5 sm:flex'>
                     <Wheat className='h-3.5 w-3.5' aria-hidden='true' />
                     <span>Nông nghiệp</span>
                   </div>
@@ -247,9 +184,6 @@ export const ChatHeader = memo(function ChatHeader() {
             </div>
           </div>
         </div>
-
-        <div className='absolute top-0 right-0 -z-10 h-32 w-32 rounded-full bg-white/10 blur-3xl sm:h-40 sm:w-40'></div>
-        <div className='absolute bottom-0 left-0 -z-10 h-32 w-32 rounded-full bg-white/10 blur-3xl sm:h-40 sm:w-40'></div>
 
         <div className='pointer-events-none absolute inset-0 z-20 opacity-30 mix-blend-overlay'>
           <div

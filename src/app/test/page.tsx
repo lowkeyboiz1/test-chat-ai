@@ -50,7 +50,6 @@ const App: React.FC = () => {
     icon: 'sun'
   })
   const [intimacyLevel, setIntimacyLevel] = useState(67)
-  const [activeMood, setActiveMood] = useState('friendly')
   const [isTyping, setIsTyping] = useState(false)
   const [cropDetailOpen, setCropDetailOpen] = useState(false)
   const [selectedCrop, setSelectedCrop] = useState<CropData | null>(null)
