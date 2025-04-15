@@ -57,12 +57,19 @@ export type FarmingTechniqueData = {
   tips: string[]
 }
 
+// Status data for showing processing state
+export type StatusData = {
+  state: 'searching' | 'processing' | 'completed' | 'error'
+  message: string
+}
+
 export type TemplateData = {
   weather: WeatherData | null
   agriPrice: AgriPriceData | null
   farmingTechnique: FarmingTechniqueData | null
   plantDoctor: TPlantDoctorData | null
   argiNews: TArgiNewsData | null
+  status: StatusData | null
 }
 
 export type MessageClasses = {
@@ -89,4 +96,8 @@ export type AgriPriceTemplateProps = {
 export type FarmingTechniqueTemplateProps = {
   techniqueData: FarmingTechniqueData | import('@/types/farmingTechnique').IFarmingTechniqueData
   isLoading?: boolean
+}
+
+export type StatusTemplateProps = {
+  statusData: StatusData
 }

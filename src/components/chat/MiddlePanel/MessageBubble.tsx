@@ -5,7 +5,7 @@ import FarmingTechniqueTemplate from '@/components/chat/MiddlePanel/FarmingTechn
 import TemplateLoader from '@/components/chat/MiddlePanel/TemplateLoader'
 import TextToSpeech from '@/components/chat/TextToSpeech'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { AGRI_PRICE_REGEX, ARGI_NEWS_REGEX, FARMING_TECHNIQUE_REGEX, PLANT_DOCTOR_REGEX, WEATHER_REGEX } from '@/constans/regex'
+import { AGRI_PRICE_REGEX, ARGI_NEWS_REGEX, FARMING_TECHNIQUE_REGEX, PLANT_DOCTOR_REGEX, STATUS_REGEX, WEATHER_REGEX } from '@/constans/regex'
 import { cn } from '@/lib/utils'
 import { MessageBubbleProps, MessageClasses, TemplateData } from '@/types/templates'
 import { formatTime } from '@/utils/formatters'
@@ -15,6 +15,7 @@ import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from 
 import PlantDoctorTemplate from './PlantDoctorTemplate'
 import ArgiNewsTemplate from './ArgiNewsTemplate'
 import { Preahvihear } from 'next/font/google'
+import StatusTemplate from './StatusTemplate'
 // Lazy load the large templates
 const WeatherTemplate = lazy(() => import('@/components/chat/MiddlePanel/WeatherTemplate'))
 
@@ -136,7 +137,11 @@ const renderMarkdown = (text: string): React.ReactNode => {
 
     // Process links and inline formatting
     const linkedContent = processLinks(line)
-    return <p className='text-slate-700'>{linkedContent.map(processInlineFormatting)}</p>
+    return (
+      <p key={line} className='text-slate-700'>
+        {linkedContent.map(processInlineFormatting)}
+      </p>
+    )
   }
 
   // Process code blocks
@@ -347,7 +352,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     agriPrice: null,
     farmingTechnique: null,
     plantDoctor: null,
-    argiNews: null
+    argiNews: null,
+    status: null
   })
 
   const [displayText, setDisplayText] = useState('')
@@ -380,7 +386,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         agriPrice: null,
         farmingTechnique: null,
         plantDoctor: null,
-        argiNews: null
+        argiNews: null,
+        status: null
       })
       setHasPartialTemplate(false)
       setDisplayText(message.text)
@@ -398,6 +405,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const farmingTechniqueMatch = message.text.match(FARMING_TECHNIQUE_REGEX)
     const plantDoctorMatch = message.text.match(PLANT_DOCTOR_REGEX)
     const argiNewsMatch = message.text.match(ARGI_NEWS_REGEX)
+    const statusMatch = message.text.match(STATUS_REGEX)
 
     // Process all template types at once
     const weatherData = processTemplateData(weatherMatch)
@@ -405,6 +413,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const farmingTechniqueData = processTemplateData(farmingTechniqueMatch)
     const plantDoctorData = processTemplateData(plantDoctorMatch)
     const argiNewsData = processTemplateData(argiNewsMatch)
+    const statusData = processTemplateData(statusMatch)
 
     // Update template data state
     setTemplateData({
@@ -412,7 +421,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       agriPrice: agriPriceData,
       farmingTechnique: farmingTechniqueData,
       plantDoctor: plantDoctorData,
-      argiNews: argiNewsData
+      argiNews: argiNewsData,
+      status: statusData
     })
 
     // Clean the text by removing all template data
@@ -430,6 +440,9 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     }
     if (argiNewsData) {
       cleanedText = cleanedText.replace(ARGI_NEWS_REGEX, '').trim()
+    }
+    if (statusData) {
+      cleanedText = cleanedText.replace(STATUS_REGEX, '').trim()
     }
 
     setDisplayText(cleanedText)
@@ -476,6 +489,9 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
           </pre>
         ) : (
           <div className={messageClasses.bubble}>
+            {/* Hiển thị thông báo trạng thái */}
+            {templateData.status && <StatusTemplate statusData={templateData.status} />}
+
             {/* Only show plain text if we should not hide it */}
             {!shouldHideText && displayText && (
               <div className='flex items-start justify-between gap-3'>

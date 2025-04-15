@@ -104,7 +104,7 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-3 sm:space-x-3'>
                 <div
-                  className={`relative flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/50 bg-emerald-950 transition-all duration-300 sm:h-12 sm:w-12 ${
+                  className={`relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-emerald-500/50 bg-emerald-950 transition-all duration-300 sm:h-12 sm:w-12 ${
                     glowing ? 'shadow-lg shadow-emerald-400/30' : ''
                   }`}
                 >
