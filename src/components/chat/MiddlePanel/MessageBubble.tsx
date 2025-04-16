@@ -355,6 +355,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   const [chatStatus] = useAtom(chatStatusAtom)
   const [hasPartialTemplate, setHasPartialTemplate] = useState(false)
   const [showTemplate, setShowTemplate] = useState(false)
+  const [isRenderingTemplate, setIsRenderingTemplate] = useState(false)
 
   // Check if this is the last message (still being streamed)
   const isMessageStreaming = useMemo(() => {
@@ -363,7 +364,45 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
 
   // Memoized function to check for partial templates
   const checkForPartialTemplate = useCallback((text: string) => {
-    return text.includes('@@')
+    // Improve detection of template rendering
+    // Check for any of these cases:
+    // 1. Has @@ followed by template tag but no closing tag
+    // 2. Has JSON object being built with { but missing }
+    // 3. Has JSON syntax in progress
+
+    // Check for template tag
+    const hasTemplateTag =
+      text.includes('@@<') &&
+      !text.includes('</FARMING_TECHNIQUE>@@') &&
+      !text.includes('</weather>@@') &&
+      !text.includes('</agriPrice>@@') &&
+      !text.includes('</plantDoctor>@@') &&
+      !text.includes('</argiNews>@@') &&
+      !text.includes('</status>@@')
+
+    // Check for unclosed JSON (more open braces than closing braces)
+    const openBraces = (text.match(/{/g) || []).length
+    const closeBraces = (text.match(/}/g) || []).length
+    const hasUnbalancedBraces = openBraces > closeBraces
+
+    // Check for JSON-like content after template opening
+    const jsonPattern = /@@<[^>]+>\s*\{.+/
+    const hasJsonAfterTag = jsonPattern.test(text)
+
+    const isPartial = hasTemplateTag || (hasJsonAfterTag && hasUnbalancedBraces)
+
+    if (isPartial) {
+      console.log('Detected partial template:', {
+        text: text.substring(0, 100),
+        hasTemplateTag,
+        hasUnbalancedBraces,
+        openBraces,
+        closeBraces,
+        hasJsonAfterTag
+      })
+    }
+
+    return isPartial
   }, [])
 
   // Process template data with error handling
@@ -402,15 +441,31 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       setHasPartialTemplate(false)
       setDisplayText(message.text)
       setShowTemplate(false)
+      setIsRenderingTemplate(false)
       return
     }
 
-    // Check for partial templates first
-    const hasPartial = checkForPartialTemplate(message.text)
+    // Check for JSON content in message text without template tags yet
+    const potentialJsonContent = message.text.includes('{') && message.text.includes('"title"') && message.text.includes('"description"')
+
+    // Check for template syntax or potential JSON content
+    const hasPartial = checkForPartialTemplate(message.text) || potentialJsonContent
     setHasPartialTemplate(hasPartial)
 
-    // Extract template data
+    // If we detect a template tag opening, but no closing tag, consider it as rendering
+    if (hasPartial) {
+      setIsRenderingTemplate(true)
+      console.log('Currently rendering template...', {
+        text: message.text.substring(0, 100),
+        hasJSON: message.text.includes('{'),
+        potentialJsonContent: potentialJsonContent
+      })
+    }
+
+    // Clean message text - also remove any raw JSON that might be from a template being built
     let cleanedText = message.text
+
+    // First try to remove template syntax and content
     const weatherMatch = message.text.match(WEATHER_REGEX)
     const agriPriceMatch = message.text.match(AGRI_PRICE_REGEX)
     const farmingTechniqueMatch = message.text.match(FARMING_TECHNIQUE_REGEX)
@@ -428,13 +483,43 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const statusData = processTemplateData(statusMatch)
     const loadingType = processLoadingTag(loadingMatch)
 
+    // Also hide raw JSON text that's likely part of a template being built
+    if (hasPartial && potentialJsonContent) {
+      // Use regex to remove JSON-like content that appears to be part of a template
+      cleanedText = cleanedText.replace(/@@<[^>]+>\s*\{[\s\S]*$/, '')
+      cleanedText = cleanedText.replace(/\s*\{\s*"title"[\s\S]*$/, '')
+    }
+
     // Check if we have any template data
     const hasAnyTemplateData = weatherData || agriPriceData || farmingTechniqueData || plantDoctorData || argiNewsData
+
+    // If we have complete template data, mark rendering as complete
+    if (hasAnyTemplateData) {
+      if (isRenderingTemplate) {
+        console.log('Template rendering complete!', {
+          template: weatherData
+            ? 'weather'
+            : agriPriceData
+              ? 'agriPrice'
+              : farmingTechniqueData
+                ? 'farmingTechnique'
+                : plantDoctorData
+                  ? 'plantDoctor'
+                  : argiNewsData
+                    ? 'argiNews'
+                    : 'unknown'
+        })
+      }
+      setIsRenderingTemplate(false)
+    }
 
     console.log('Processing message:', {
       hasAnyTemplateData,
       loadingType,
-      weatherData: weatherData !== null
+      isRenderingTemplate: hasPartial,
+      weatherData: weatherData !== null,
+      hasPartial,
+      potentialJsonContent
     })
 
     // Determine if we should show loading indicator or template
@@ -442,9 +527,9 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     let shouldShowTemplates = false
 
     // Priority logic:
-    // 1. If we have template data, show it (regardless of loading state)
+    // 1. If we have template data AND we're not currently streaming, show it
     // 2. If we only have loading state, show loading
-    if (hasAnyTemplateData) {
+    if (hasAnyTemplateData && !hasPartial && !isMessageStreaming) {
       shouldShowTemplates = true
       shouldShowLoading = false
     } else if (loadingType) {
@@ -489,8 +574,43 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       cleanedText = cleanedText.replace(LOADING_REGEX, '').trim()
     }
 
+    // Also remove any partial templates from display text
+    if (hasPartial) {
+      // More aggressive cleaning of template or JSON fragments
+      cleanedText = cleanedText.replace(/@@<[^>]+>[^<]*$/g, '').trim()
+
+      // Try to hide JSON-looking content
+      if (cleanedText.includes('{') && cleanedText.includes('"')) {
+        const lastOpenBraceIndex = cleanedText.lastIndexOf('{')
+        if (lastOpenBraceIndex >= 0) {
+          cleanedText = cleanedText.substring(0, lastOpenBraceIndex).trim()
+        }
+      }
+    }
+
     setDisplayText(cleanedText)
-  }, [message.text, message.sender, checkForPartialTemplate, processTemplateData, processLoadingTag])
+  }, [message.text, message.sender, checkForPartialTemplate, processTemplateData, processLoadingTag, isRenderingTemplate, isMessageStreaming])
+
+  // Effect to detect when streaming ends and show templates
+  useEffect(() => {
+    if (!isMessageStreaming && hasPartialTemplate && !showTemplate) {
+      // When streaming ends and we have template data
+      console.log('Streaming ended, checking templates for display')
+
+      const hasTemplateData =
+        templateData.weather !== null ||
+        templateData.agriPrice !== null ||
+        templateData.farmingTechnique !== null ||
+        templateData.plantDoctor !== null ||
+        templateData.argiNews !== null
+
+      if (hasTemplateData) {
+        console.log('Template data available, showing template')
+        setShowTemplate(true)
+        setIsRenderingTemplate(false)
+      }
+    }
+  }, [isMessageStreaming, hasPartialTemplate, showTemplate, templateData])
 
   // Effect to detect changes in message content and handle transition from loading to template
   useEffect(() => {
@@ -507,6 +627,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       hasCompleteTemplate,
       hasLoading: templateData.loading !== null,
       showTemplate,
+      isRenderingTemplate,
+      streaming: isMessageStreaming,
       weather: templateData.weather !== null,
       loading: templateData.loading
     })
@@ -518,9 +640,12 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         ...prev,
         loading: null
       }))
-      setShowTemplate(true)
+      if (!isMessageStreaming) {
+        setShowTemplate(true)
+        setIsRenderingTemplate(false)
+      }
     }
-  }, [message.text, templateData, showTemplate])
+  }, [message.text, templateData, showTemplate, isRenderingTemplate, isMessageStreaming])
 
   // Memoize derived values to prevent unnecessary recalculations
   const { hasTemplate, shouldHideText } = useMemo(() => {
@@ -581,32 +706,32 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
               </div>
             )}
 
-            {/* Show templates if we should show templates */}
-            {showTemplate && templateData.weather && (
+            {/* Only show template data when not streaming and not in rendering state */}
+            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.weather && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <WeatherTemplate weatherData={templateData.weather} />
               </div>
             )}
 
-            {showTemplate && templateData.agriPrice && (
+            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.agriPrice && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <AgriPriceTemplate priceData={templateData.agriPrice} />
               </div>
             )}
 
-            {showTemplate && templateData.farmingTechnique && (
+            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.farmingTechnique && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
               </div>
             )}
 
-            {showTemplate && templateData.plantDoctor && (
+            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.plantDoctor && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <PlantDoctorTemplate plantData={templateData.plantDoctor} />
               </div>
             )}
 
-            {showTemplate && templateData.argiNews && (
+            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.argiNews && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <ArgiNewsTemplate newsData={templateData.argiNews} />
               </div>

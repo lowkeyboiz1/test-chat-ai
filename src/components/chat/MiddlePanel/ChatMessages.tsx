@@ -152,7 +152,7 @@ export const ChatMessages = memo(function ChatMessages() {
           {/* Messages */}
           <div className='relative space-y-4 sm:space-y-6'>
             {messages.map((message, index) => (
-              <MessageBubble key={index} message={message as TMessage} shouldShowTyping={shouldShowTyping} />
+              <MessageBubble key={index} message={message as TMessage} />
             ))}
 
             {/* Typing indicator based on chatStatus */}
