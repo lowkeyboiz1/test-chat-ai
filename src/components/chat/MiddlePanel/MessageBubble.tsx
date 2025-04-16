@@ -2,7 +2,6 @@
 import { chatStatusAtom, isTypingAtom } from '@/atoms/chatAtoms'
 import AgriPriceTemplate from '@/components/chat/MiddlePanel/AgriPriceTemplate'
 import FarmingTechniqueTemplate from '@/components/chat/MiddlePanel/FarmingTechniqueTemplate'
-import TemplateLoader from '@/components/chat/MiddlePanel/TemplateLoader'
 import TextToSpeech from '@/components/chat/TextToSpeech'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AGRI_PRICE_REGEX, ARGI_NEWS_REGEX, FARMING_TECHNIQUE_REGEX, LOADING_REGEX, PLANT_DOCTOR_REGEX, STATUS_REGEX, WEATHER_REGEX } from '@/constans/regex'
@@ -526,10 +525,11 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     let shouldShowLoading = false
     let shouldShowTemplates = false
 
-    // Priority logic:
-    // 1. If we have template data AND we're not currently streaming, show it
-    // 2. If we only have loading state, show loading
-    if (hasAnyTemplateData && !hasPartial && !isMessageStreaming) {
+    // Priority logic (updated):
+    // 1. If we have template data, show it (even during streaming)
+    // 2. If we're currently rendering a template, don't show previous templates
+    // 3. If we only have loading state, show loading
+    if (hasAnyTemplateData) {
       shouldShowTemplates = true
       shouldShowLoading = false
     } else if (loadingType) {
@@ -537,7 +537,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       shouldShowTemplates = false
     }
 
-    // Update UI states
+    // Update UI states - allow showing template even during streaming if we have template data
     setShowTemplate(shouldShowTemplates)
 
     // Update template data state
@@ -652,12 +652,13 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const hasTemplateValue = Boolean(
       templateData.weather || templateData.agriPrice || templateData.farmingTechnique || templateData.plantDoctor || templateData.argiNews
     )
-    // Only hide text if this message is still streaming and has a template or partial template
+
+    // Hide text if showing a template during streaming
     return {
       hasTemplate: hasTemplateValue,
-      shouldHideText: (hasTemplateValue || hasPartialTemplate) && isMessageStreaming
+      shouldHideText: hasTemplateValue && isMessageStreaming && isRenderingTemplate
     }
-  }, [templateData, hasPartialTemplate, isMessageStreaming])
+  }, [templateData, isMessageStreaming, isRenderingTemplate])
 
   // Memoize message styling classes
   const messageClasses = useMemo<MessageClasses>(() => {
@@ -706,32 +707,32 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
               </div>
             )}
 
-            {/* Only show template data when not streaming and not in rendering state */}
-            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.weather && (
+            {/* Show templates if we have data - even during streaming (changed from isRenderingTemplate condition) */}
+            {showTemplate && templateData.weather && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <WeatherTemplate weatherData={templateData.weather} />
               </div>
             )}
 
-            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.agriPrice && (
+            {showTemplate && templateData.agriPrice && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <AgriPriceTemplate priceData={templateData.agriPrice} />
               </div>
             )}
 
-            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.farmingTechnique && (
+            {showTemplate && templateData.farmingTechnique && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
               </div>
             )}
 
-            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.plantDoctor && (
+            {showTemplate && templateData.plantDoctor && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <PlantDoctorTemplate plantData={templateData.plantDoctor} />
               </div>
             )}
 
-            {showTemplate && !isMessageStreaming && !isRenderingTemplate && templateData.argiNews && (
+            {showTemplate && templateData.argiNews && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <ArgiNewsTemplate newsData={templateData.argiNews} />
               </div>
