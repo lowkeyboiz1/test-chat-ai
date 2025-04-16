@@ -8,6 +8,7 @@ export const inputValueAtom = atom('')
 export const isRecordingAtom = atom(false)
 export const transcriptAtom = atom('')
 export const isTypingAtom = atom(false)
+export const chatStatusAtom = atom<'submitted' | 'streaming' | 'ready' | 'error'>('ready')
 export const weatherAtom = atom<TWeatherData>({
   temp: 28,
   condition: 'Nắng nhẹ',
@@ -71,6 +72,7 @@ export function useChatState() {
   const [isRecording, setIsRecording] = useAtom(isRecordingAtom)
   const [isTyping, setIsTyping] = useAtom(isTypingAtom)
   const [, setAiMessages] = useAtom(aiMessagesAtom)
+  const [, setChatStatus] = useAtom(chatStatusAtom)
   const [imageUpload, setImageUpload] = useAtom(imageUploadAtom)
 
   const {
@@ -78,7 +80,8 @@ export function useChatState() {
     handleInputChange,
     handleSubmit,
     isLoading,
-    error
+    error,
+    status
   } = useAIChat({
     api: `${process.env.NEXT_PUBLIC_API_URL}/api/ai/chat-template`,
     streamProtocol: 'data'
@@ -96,10 +99,12 @@ export function useChatState() {
     handleInputChange({ target: { value: inputValue } } as React.ChangeEvent<HTMLInputElement>)
   }, [inputValue, handleInputChange])
 
-  // Update isTyping when AI response is loading or completes
+  // Update chat status based on the SDK status
   useEffect(() => {
-    setIsTyping(isLoading)
-  }, [isLoading, setIsTyping])
+    setChatStatus(status)
+    // Update isTyping based on the streaming status
+    setIsTyping(status === 'streaming' || status === 'submitted')
+  }, [status, setChatStatus, setIsTyping])
 
   // Sync AI SDK messages with Jotai
   useEffect(() => {
@@ -110,7 +115,6 @@ export function useChatState() {
     if (inputValue.trim() === '' || isLoading || isTyping) return
     handleSubmit(new Event('submit'))
     setInputValue('')
-    setIsTyping(true)
   }
 
   const toggleRecording = () => {
@@ -216,6 +220,7 @@ export function useChatState() {
     error,
     imageUpload,
     handleImageUpload,
-    clearImage
+    clearImage,
+    status
   }
 }

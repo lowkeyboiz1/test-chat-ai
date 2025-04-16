@@ -1,32 +1,25 @@
 'use client'
-import { isTypingAtom } from '@/atoms/chatAtoms'
+import { chatStatusAtom, isTypingAtom } from '@/atoms/chatAtoms'
 import AgriPriceTemplate from '@/components/chat/MiddlePanel/AgriPriceTemplate'
 import FarmingTechniqueTemplate from '@/components/chat/MiddlePanel/FarmingTechniqueTemplate'
 import TemplateLoader from '@/components/chat/MiddlePanel/TemplateLoader'
 import TextToSpeech from '@/components/chat/TextToSpeech'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { AGRI_PRICE_REGEX, ARGI_NEWS_REGEX, FARMING_TECHNIQUE_REGEX, PLANT_DOCTOR_REGEX, STATUS_REGEX, WEATHER_REGEX } from '@/constans/regex'
+import { AGRI_PRICE_REGEX, ARGI_NEWS_REGEX, FARMING_TECHNIQUE_REGEX, LOADING_REGEX, PLANT_DOCTOR_REGEX, STATUS_REGEX, WEATHER_REGEX } from '@/constans/regex'
 import { cn } from '@/lib/utils'
 import { MessageBubbleProps, MessageClasses, TemplateData } from '@/types/templates'
 import { formatTime } from '@/utils/formatters'
 import { useAtom } from 'jotai'
 import { Bug, User } from 'lucide-react'
-import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
-import PlantDoctorTemplate from './PlantDoctorTemplate'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import ArgiNewsTemplate from './ArgiNewsTemplate'
-import { Preahvihear } from 'next/font/google'
+import PlantDoctorTemplate from './PlantDoctorTemplate'
 import StatusTemplate from './StatusTemplate'
-// Lazy load the large templates
-const WeatherTemplate = lazy(() => import('@/components/chat/MiddlePanel/WeatherTemplate'))
+import WeatherTemplate from './WeatherTemplate'
 
 // Custom function to parse and render markdown
 const renderMarkdown = (text: string): React.ReactNode => {
   if (!text) return null
-
-  // Function to escape HTML to prevent XSS
-  const escapeHtml = (unsafe: string): string => {
-    return unsafe.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;')
-  }
 
   // Process links - [text](url)
   const processLinks = (line: string): React.ReactNode[] => {
@@ -210,7 +203,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
             // End previous list
             const olList = currentList as ListState
             result.push(
-              <ol className='my-2 list-decimal pl-5'>
+              <ol key={index} className='my-2 list-decimal pl-5'>
                 {olList.items.map((item: React.ReactNode, i: number) => (
                   <li key={i} className='my-1'>
                     {item}
@@ -238,7 +231,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
             // End previous list
             const ulList = currentList as ListState
             result.push(
-              <ul className='my-2 list-disc pl-5'>
+              <ul key={index} className='my-2 list-disc pl-5'>
                 {ulList.items.map((item: React.ReactNode, i: number) => (
                   <li key={i} className='my-1'>
                     {item}
@@ -262,7 +255,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
         if (currentList.type === 'ul') {
           const ulList = currentList as ListState
           result.push(
-            <ul className='my-2 list-disc pl-5'>
+            <ul key={index} className='my-2 list-disc pl-5'>
               {ulList.items.map((item: React.ReactNode, i: number) => (
                 <li key={i} className='my-1'>
                   {item}
@@ -273,7 +266,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
         } else {
           const olList = currentList as ListState
           result.push(
-            <ol className='my-2 list-decimal pl-5'>
+            <ol key={index} className='my-2 list-decimal pl-5'>
               {olList.items.map((item: React.ReactNode, i: number) => (
                 <li key={i} className='my-1'>
                   {item}
@@ -294,7 +287,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
       if (currentList.type === 'ul') {
         const ulList = currentList as ListState
         result.push(
-          <ul className='my-2 list-disc pl-5'>
+          <ul key={currentList.items.length} className='my-2 list-disc pl-5'>
             {ulList.items.map((item: React.ReactNode, i: number) => (
               <li key={i} className='my-1'>
                 {item}
@@ -305,7 +298,7 @@ const renderMarkdown = (text: string): React.ReactNode => {
       } else {
         const olList = currentList as ListState
         result.push(
-          <ol className='my-2 list-decimal pl-5'>
+          <ol key={currentList.items.length} className='my-2 list-decimal pl-5'>
             {olList.items.map((item: React.ReactNode, i: number) => (
               <li key={i} className='my-1'>
                 {item}
@@ -353,12 +346,20 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     farmingTechnique: null,
     plantDoctor: null,
     argiNews: null,
-    status: null
+    status: null,
+    loading: null
   })
 
   const [displayText, setDisplayText] = useState('')
   const [isTyping] = useAtom(isTypingAtom)
+  const [chatStatus] = useAtom(chatStatusAtom)
   const [hasPartialTemplate, setHasPartialTemplate] = useState(false)
+  const [showTemplate, setShowTemplate] = useState(false)
+
+  // Check if this is the last message (still being streamed)
+  const isMessageStreaming = useMemo(() => {
+    return message.sender === 'ai' && (chatStatus === 'streaming' || chatStatus === 'submitted')
+  }, [message.sender, chatStatus])
 
   // Memoized function to check for partial templates
   const checkForPartialTemplate = useCallback((text: string) => {
@@ -378,6 +379,14 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     return null
   }, [])
 
+  // Process loading tag to extract loading type
+  const processLoadingTag = useCallback((match: RegExpMatchArray | null) => {
+    if (match && match[1]) {
+      return match[1].trim()
+    }
+    return null
+  }, [])
+
   useEffect(() => {
     if (message.sender !== 'ai') {
       // Reset all states for non-AI messages
@@ -387,10 +396,12 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         farmingTechnique: null,
         plantDoctor: null,
         argiNews: null,
-        status: null
+        status: null,
+        loading: null
       })
       setHasPartialTemplate(false)
       setDisplayText(message.text)
+      setShowTemplate(false)
       return
     }
 
@@ -406,6 +417,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const plantDoctorMatch = message.text.match(PLANT_DOCTOR_REGEX)
     const argiNewsMatch = message.text.match(ARGI_NEWS_REGEX)
     const statusMatch = message.text.match(STATUS_REGEX)
+    const loadingMatch = message.text.match(LOADING_REGEX)
 
     // Process all template types at once
     const weatherData = processTemplateData(weatherMatch)
@@ -414,6 +426,34 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const plantDoctorData = processTemplateData(plantDoctorMatch)
     const argiNewsData = processTemplateData(argiNewsMatch)
     const statusData = processTemplateData(statusMatch)
+    const loadingType = processLoadingTag(loadingMatch)
+
+    // Check if we have any template data
+    const hasAnyTemplateData = weatherData || agriPriceData || farmingTechniqueData || plantDoctorData || argiNewsData
+
+    console.log('Processing message:', {
+      hasAnyTemplateData,
+      loadingType,
+      weatherData: weatherData !== null
+    })
+
+    // Determine if we should show loading indicator or template
+    let shouldShowLoading = false
+    let shouldShowTemplates = false
+
+    // Priority logic:
+    // 1. If we have template data, show it (regardless of loading state)
+    // 2. If we only have loading state, show loading
+    if (hasAnyTemplateData) {
+      shouldShowTemplates = true
+      shouldShowLoading = false
+    } else if (loadingType) {
+      shouldShowLoading = true
+      shouldShowTemplates = false
+    }
+
+    // Update UI states
+    setShowTemplate(shouldShowTemplates)
 
     // Update template data state
     setTemplateData({
@@ -422,7 +462,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       farmingTechnique: farmingTechniqueData,
       plantDoctor: plantDoctorData,
       argiNews: argiNewsData,
-      status: statusData
+      status: statusData,
+      loading: shouldShowLoading ? loadingType : null
     })
 
     // Clean the text by removing all template data
@@ -444,18 +485,54 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     if (statusData) {
       cleanedText = cleanedText.replace(STATUS_REGEX, '').trim()
     }
+    if (loadingType) {
+      cleanedText = cleanedText.replace(LOADING_REGEX, '').trim()
+    }
 
     setDisplayText(cleanedText)
-  }, [message.text, message.sender, checkForPartialTemplate, processTemplateData])
+  }, [message.text, message.sender, checkForPartialTemplate, processTemplateData, processLoadingTag])
+
+  // Effect to detect changes in message content and handle transition from loading to template
+  useEffect(() => {
+    // If we have a complete template data in the current message, clear loading state
+    const hasCompleteTemplate =
+      templateData.weather !== null ||
+      templateData.agriPrice !== null ||
+      templateData.farmingTechnique !== null ||
+      templateData.plantDoctor !== null ||
+      templateData.argiNews !== null
+
+    // Debug information
+    console.log('Message changed:', {
+      hasCompleteTemplate,
+      hasLoading: templateData.loading !== null,
+      showTemplate,
+      weather: templateData.weather !== null,
+      loading: templateData.loading
+    })
+
+    if (hasCompleteTemplate && templateData.loading !== null) {
+      // Clear loading and show template when we have both loading and template data
+      console.log('Transitioning from loading to template view')
+      setTemplateData((prev) => ({
+        ...prev,
+        loading: null
+      }))
+      setShowTemplate(true)
+    }
+  }, [message.text, templateData, showTemplate])
 
   // Memoize derived values to prevent unnecessary recalculations
   const { hasTemplate, shouldHideText } = useMemo(() => {
-    const hasTemplateValue = Boolean(templateData.weather || templateData.agriPrice || templateData.farmingTechnique)
+    const hasTemplateValue = Boolean(
+      templateData.weather || templateData.agriPrice || templateData.farmingTechnique || templateData.plantDoctor || templateData.argiNews
+    )
+    // Only hide text if this message is still streaming and has a template or partial template
     return {
       hasTemplate: hasTemplateValue,
-      shouldHideText: (hasTemplateValue || hasPartialTemplate) && isTyping
+      shouldHideText: (hasTemplateValue || hasPartialTemplate) && isMessageStreaming
     }
-  }, [templateData, hasPartialTemplate, isTyping])
+  }, [templateData, hasPartialTemplate, isMessageStreaming])
 
   // Memoize message styling classes
   const messageClasses = useMemo<MessageClasses>(() => {
@@ -478,7 +555,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
             <div className='flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-lime-400 to-emerald-400 sm:h-9 sm:w-9'>
               <Bug className='h-3.5 w-3.5 text-white sm:h-4 sm:w-4' />
             </div>
-            {isTyping && <div className='absolute inset-0 animate-pulse rounded-full bg-lime-200/60'></div>}
+            {isMessageStreaming && <div className='absolute inset-0 animate-pulse rounded-full bg-lime-200/60'></div>}
           </div>
         )}
 
@@ -489,14 +566,14 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
           </pre>
         ) : (
           <div className={messageClasses.bubble}>
-            {/* Hiển thị thông báo trạng thái */}
+            {/* Display status template */}
             {templateData.status && <StatusTemplate statusData={templateData.status} />}
 
             {/* Only show plain text if we should not hide it */}
-            {!shouldHideText && displayText && (
+            {displayText && (
               <div className='flex items-start justify-between gap-3'>
                 <div className='font-inter whitespace-pre-wrap'>{renderMarkdown(displayText)}</div>
-                {!isTyping && displayText && (
+                {!isMessageStreaming && displayText && (
                   <div className='mt-0.5'>
                     <TextToSpeech text={displayText} />
                   </div>
@@ -504,41 +581,32 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
               </div>
             )}
 
-            {/* Show templates if data is available - using Suspense for better UX */}
-            <Suspense fallback={<TemplateLoader />}>
-              {templateData.weather && (
-                <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                  <WeatherTemplate weatherData={templateData.weather} />
-                </div>
-              )}
-            </Suspense>
+            {/* Show templates if we should show templates */}
+            {showTemplate && templateData.weather && (
+              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
+                <WeatherTemplate weatherData={templateData.weather} />
+              </div>
+            )}
 
-            {templateData.agriPrice && (
+            {showTemplate && templateData.agriPrice && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <AgriPriceTemplate priceData={templateData.agriPrice} />
               </div>
             )}
 
-            {templateData.farmingTechnique && (
+            {showTemplate && templateData.farmingTechnique && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
               </div>
             )}
 
-            {/* If we have partial template and are still typing, show a placeholder */}
-            {hasPartialTemplate && isTyping && !hasTemplate && (
-              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                <TemplateLoader />
-              </div>
-            )}
-
-            {templateData.plantDoctor && (
+            {showTemplate && templateData.plantDoctor && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <PlantDoctorTemplate plantData={templateData.plantDoctor} />
               </div>
             )}
 
-            {templateData.argiNews && (
+            {showTemplate && templateData.argiNews && (
               <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
                 <ArgiNewsTemplate newsData={templateData.argiNews} />
               </div>

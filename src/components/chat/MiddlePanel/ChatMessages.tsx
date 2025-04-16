@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { MessageBubble } from '@/components/chat/MiddlePanel/MessageBubble'
 import { Bug, Search, RefreshCw, Database, Brain, Loader2, Zap } from 'lucide-react'
 import { useAtom } from 'jotai'
-import { isTypingAtom, messagesAtom } from '@/atoms/chatAtoms'
+import { chatStatusAtom, isTypingAtom, messagesAtom } from '@/atoms/chatAtoms'
 import { TMessage } from '@/types'
 
 // Define the CSS animation for the status indicator dots and transitions
@@ -53,65 +53,32 @@ const typingAnimationStyle = `
 
 // Status types and their corresponding icons
 const STATUS_ICONS = {
-  typing: Bug,
+  submitted: Bug,
+  streaming: Loader2,
+  thinking: Brain,
   searching: Search,
   updating: RefreshCw,
   fetching: Database,
-  thinking: Brain,
-  processing: Loader2,
   analyzing: Zap
 }
 
 // Status messages in Vietnamese
 const STATUS_MESSAGES = {
-  typing: 'Đang soạn',
+  submitted: 'Đang khởi động',
+  streaming: 'Đang soạn',
+  thinking: 'Đang suy nghĩ',
   searching: 'Đang tìm kiếm',
   updating: 'Đang cập nhật',
   fetching: 'Đang lấy dữ liệu',
-  thinking: 'Đang suy nghĩ',
-  processing: 'Đang xử lý',
   analyzing: 'Đang phân tích'
 }
-
-// Status transition timing (more varied timing)
-const STATUS_TRANSITION_TIME = 4000 // 4 seconds between status changes
 
 export const ChatMessages = memo(function ChatMessages() {
   const [messages] = useAtom(messagesAtom)
   const [isTyping] = useAtom(isTypingAtom)
+  const [chatStatus] = useAtom(chatStatusAtom)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [currentStatus, setCurrentStatus] = useState<keyof typeof STATUS_ICONS>('typing')
   const [fadeStatus, setFadeStatus] = useState(true)
-
-  // Cycle through statuses when isTyping is true with smooth transitions
-  useEffect(() => {
-    if (!isTyping) return
-
-    // Statuses to cycle through in a specific sequence for better user experience
-    const statusSequence: Array<keyof typeof STATUS_ICONS> = ['typing', 'thinking', 'searching', 'fetching', 'processing', 'analyzing', 'updating']
-
-    let currentIndex = 0
-
-    const rotateStatus = () => {
-      // Fade out, change status, fade in
-      setFadeStatus(false)
-
-      setTimeout(() => {
-        currentIndex = (currentIndex + 1) % statusSequence.length
-        setCurrentStatus(statusSequence[currentIndex])
-        setFadeStatus(true)
-      }, 200) // Short delay to allow fade out
-    }
-
-    // Set initial status with fade in
-    setCurrentStatus(statusSequence[0])
-    setFadeStatus(true)
-
-    // Set up interval to change status with varying times
-    const interval = setInterval(rotateStatus, STATUS_TRANSITION_TIME)
-
-    return () => clearInterval(interval)
-  }, [isTyping])
 
   // Improved scrolling function
   const scrollToBottom = useCallback(() => {
@@ -132,21 +99,31 @@ export const ChatMessages = memo(function ChatMessages() {
     return () => clearTimeout(timeoutId)
   }, [messages.length, isTyping, scrollToBottom])
 
-  // Get current icon component
-  const StatusIcon = STATUS_ICONS[currentStatus]
+  // Check if there's a loading tag in the messages
+  const loadingTagRegex = /@@<loading>(.*?)<\/loading>/
+  const lastMessage = messages[messages.length - 1]?.text || ''
+  const loadingMatch = lastMessage.match(loadingTagRegex)
+
+  // Determine status based on chatStatus or loading tag
+  const statusFromTag = loadingMatch && loadingMatch[1] ? loadingMatch[1] : undefined
+  const shouldShowTyping = isTyping || chatStatus === 'streaming' || chatStatus === 'submitted'
+  const currentStatus = statusFromTag || chatStatus
+
+  // Get the appropriate icon for the current status
+  const StatusIcon = STATUS_ICONS[currentStatus as keyof typeof STATUS_ICONS] || STATUS_ICONS.streaming
 
   // Generate a different color based on the status
-  const getStatusColor = (status: keyof typeof STATUS_ICONS) => {
+  const getStatusColor = (status: string) => {
     const colors = {
-      typing: 'from-lime-400 to-emerald-400',
+      submitted: 'from-blue-400 to-indigo-400',
+      streaming: 'from-lime-400 to-emerald-400',
+      thinking: 'from-emerald-400 to-teal-400',
       searching: 'from-blue-400 to-cyan-400',
       updating: 'from-amber-400 to-orange-400',
       fetching: 'from-violet-400 to-purple-400',
-      thinking: 'from-emerald-400 to-teal-400',
-      processing: 'from-rose-400 to-pink-400',
       analyzing: 'from-yellow-400 to-amber-400'
     }
-    return colors[status] || 'from-lime-400 to-emerald-400'
+    return colors[status as keyof typeof colors] || 'from-lime-400 to-emerald-400'
   }
 
   return (
@@ -175,41 +152,25 @@ export const ChatMessages = memo(function ChatMessages() {
           {/* Messages */}
           <div className='relative space-y-4 sm:space-y-6'>
             {messages.map((message, index) => (
-              <MessageBubble key={index} message={message as TMessage} />
+              <MessageBubble key={index} message={message as TMessage} shouldShowTyping={shouldShowTyping} />
             ))}
 
-            {/* Enhanced Typing indicator with animated status - only show if there's no status message */}
-            {isTyping && !messages.some((m) => m.text?.includes('<STATUS>')) && (
-              <div className='flex justify-start' aria-live='polite' aria-label={`AI is ${currentStatus}`}>
-                <div className='animate-fadeIn flex max-w-[90%] gap-1.5 sm:gap-3 lg:max-w-[80%]'>
-                  {/* Avatar with dynamic color based on status */}
-                  <div className='relative mt-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-lime-300/80 bg-gradient-to-br from-lime-100 to-white shadow-xl shadow-lime-200/40 transition-all duration-300 hover:scale-105 sm:h-11 sm:w-11'>
-                    <div
-                      className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${getStatusColor(currentStatus)} transition-all duration-500 sm:h-9 sm:w-9`}
-                    >
-                      <StatusIcon className='status-icon h-4 w-4 text-white drop-shadow-md sm:h-5 sm:w-5' />
-                    </div>
-                    <div className='absolute inset-0 animate-pulse rounded-full bg-lime-200/60'></div>
-                    <div className='absolute -inset-1 animate-ping rounded-full bg-lime-300/30 duration-1000'></div>
-                  </div>
-
-                  {/* Status message bubble with enhanced animation and transitions */}
-                  <div className='status-bubble group mt-2 flex items-center gap-2 overflow-hidden rounded-2xl border-2 border-lime-300/70 bg-gradient-to-br from-lime-50/95 via-white/95 to-emerald-50/95 px-5 py-3 shadow-lg shadow-lime-200/40 backdrop-blur-sm transition-all duration-300 hover:shadow-lime-200/60'>
-                    <div className='flex items-center space-x-2'>
-                      <p
-                        className={`status-text font-medium text-slate-700 transition-all duration-500 ${fadeStatus ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}
-                      >
-                        <span className='bg-gradient-to-r from-emerald-600 to-lime-500 bg-clip-text font-semibold text-transparent'>
-                          {STATUS_MESSAGES[currentStatus]}
-                        </span>
-                      </p>
-                      <div className='ml-1 flex space-x-1.5'>
-                        <span className='typing-dot h-2 w-2 rounded-full bg-gradient-to-r from-lime-500 to-emerald-500 shadow-sm shadow-lime-300'></span>
-                        <span className='typing-dot h-2 w-2 rounded-full bg-gradient-to-r from-lime-500 to-emerald-500 shadow-sm shadow-lime-300'></span>
-                        <span className='typing-dot h-2 w-2 rounded-full bg-gradient-to-r from-lime-500 to-emerald-500 shadow-sm shadow-lime-300'></span>
-                      </div>
-                    </div>
-                  </div>
+            {/* Typing indicator based on chatStatus */}
+            {shouldShowTyping && (
+              <div
+                className={`flex items-center space-x-2 rounded-lg border border-lime-200 bg-gradient-to-br ${getStatusColor(currentStatus)} p-3 shadow-md transition-opacity duration-200 ${fadeStatus ? 'opacity-100' : 'opacity-0'}`}
+                style={{ maxWidth: 'fit-content' }}
+              >
+                <div className='status-icon rounded-full bg-white/90 p-1'>
+                  <StatusIcon className='h-4 w-4 text-emerald-600' />
+                </div>
+                <div className='status-text text-sm font-medium text-white'>
+                  {STATUS_MESSAGES[currentStatus as keyof typeof STATUS_MESSAGES] || STATUS_MESSAGES.streaming}
+                </div>
+                <div className='flex space-x-1'>
+                  <div className='typing-dot h-2 w-2 rounded-full bg-white'></div>
+                  <div className='typing-dot h-2 w-2 rounded-full bg-white'></div>
+                  <div className='typing-dot h-2 w-2 rounded-full bg-white'></div>
                 </div>
               </div>
             )}

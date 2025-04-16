@@ -70,6 +70,7 @@ export type TemplateData = {
   plantDoctor: TPlantDoctorData | null
   argiNews: TArgiNewsData | null
   status: StatusData | null
+  loading: string | null
 }
 
 export type MessageClasses = {
