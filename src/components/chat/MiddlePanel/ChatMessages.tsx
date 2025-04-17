@@ -108,6 +108,7 @@ export const ChatMessages = memo(function ChatMessages() {
   const statusFromTag = loadingMatch && loadingMatch[1] ? loadingMatch[1] : undefined
   const shouldShowTyping = isTyping || chatStatus === 'streaming' || chatStatus === 'submitted'
   const currentStatus = statusFromTag || chatStatus
+  console.log({ statusFromTag, chatStatus, currentStatus })
 
   // Get the appropriate icon for the current status
   const StatusIcon = STATUS_ICONS[currentStatus as keyof typeof STATUS_ICONS] || STATUS_ICONS.streaming
@@ -156,6 +157,7 @@ export const ChatMessages = memo(function ChatMessages() {
             ))}
 
             {/* Typing indicator based on chatStatus */}
+
             {shouldShowTyping && (
               <div
                 className={`flex items-center space-x-2 rounded-lg border border-lime-200 bg-gradient-to-br ${getStatusColor(currentStatus)} p-3 shadow-md transition-opacity duration-200 ${fadeStatus ? 'opacity-100' : 'opacity-0'}`}

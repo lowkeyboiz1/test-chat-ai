@@ -708,35 +708,17 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
             )}
 
             {/* Show templates if we have data - even during streaming (changed from isRenderingTemplate condition) */}
-            {showTemplate && templateData.weather && (
-              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                <WeatherTemplate weatherData={templateData.weather} />
-              </div>
-            )}
+            {showTemplate && templateData.weather && <WeatherTemplate weatherData={templateData.weather} />}
 
-            {showTemplate && templateData.agriPrice && (
-              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                <AgriPriceTemplate priceData={templateData.agriPrice} />
-              </div>
-            )}
+            {showTemplate && templateData.agriPrice && <AgriPriceTemplate priceData={templateData.agriPrice} />}
 
             {showTemplate && templateData.farmingTechnique && (
-              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
-              </div>
+              <FarmingTechniqueTemplate techniqueData={templateData.farmingTechnique} isLoading={!templateData.farmingTechnique} />
             )}
 
-            {showTemplate && templateData.plantDoctor && (
-              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                <PlantDoctorTemplate plantData={templateData.plantDoctor} />
-              </div>
-            )}
+            {showTemplate && templateData.plantDoctor && <PlantDoctorTemplate plantData={templateData.plantDoctor} />}
 
-            {showTemplate && templateData.argiNews && (
-              <div className='mt-4 w-full overflow-hidden rounded-xl border border-lime-300/30 bg-gradient-to-br from-lime-50/90 via-white/95 to-emerald-50/90 p-3 shadow-sm shadow-lime-200/20'>
-                <ArgiNewsTemplate newsData={templateData.argiNews} />
-              </div>
-            )}
+            {showTemplate && templateData.argiNews && <ArgiNewsTemplate newsData={templateData.argiNews} />}
 
             <div className={messageClasses.timestamp}>{formatTime(message.timestamp)}</div>
           </div>

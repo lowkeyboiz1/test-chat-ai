@@ -40,7 +40,7 @@ export const ChatArea = memo(function ChatArea() {
 
       <div className='relative z-10 flex h-full w-full flex-col'>
         <ChatHeader />
-        <div className='min-h-0 flex-1 overflow-hidden pt-[72px] sm:pt-[84px]'>
+        <div className='min-h-0 flex-1 overflow-hidden'>
           <ChatMessages />
         </div>
         <ChatInput />
