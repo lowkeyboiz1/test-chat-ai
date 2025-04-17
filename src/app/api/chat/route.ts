@@ -100,112 +100,12 @@ export async function POST(req: NextRequest) {
     const processedMessages = [systemMessage, ...messages]
 
     // Use the AI SDK to generate a streaming text response
-    const stream = new TransformStream()
-    const writer = stream.writable.getWriter()
-    const encoder = new TextEncoder()
+    const result = await streamText({
+      model: openai.chat('gpt-4o-mini'),
+      messages: processedMessages
+    })
 
-    // Định nghĩa chuỗi các trạng thái và thời gian chuyển tiếp
-    const statusSequence: { state: StatusState; delay: number }[] = [
-      { state: 'analyzing', delay: 600 },
-      { state: 'searching', delay: 1200 },
-      { state: 'fetching', delay: 1000 },
-      { state: 'thinking', delay: 800 },
-      { state: 'processing', delay: 1200 }
-    ]
-
-    // Gửi các trạng thái trong chuỗi với độ trễ
-    let currentStatusIndex = 0
-
-    // Gửi trạng thái đầu tiên ngay lập tức
-    const firstStatus = createStatusMessage(statusSequence[0].state)
-    await writer.write(encoder.encode(`data: ${JSON.stringify(firstStatus)}\n\n`))
-
-    // Đặt timeout cho các trạng thái tiếp theo
-    const sendNextStatus = () => {
-      if (currentStatusIndex < statusSequence.length - 1) {
-        currentStatusIndex++
-        const nextStatus = statusSequence[currentStatusIndex]
-
-        setTimeout(async () => {
-          const statusMessage = createStatusMessage(nextStatus.state)
-          await writer.write(encoder.encode(`data: ${JSON.stringify(statusMessage)}\n\n`))
-
-          // Đệ quy để gửi trạng thái tiếp theo
-          sendNextStatus()
-        }, nextStatus.delay)
-      }
-    }
-
-    // Bắt đầu gửi chuỗi trạng thái
-    sendNextStatus()
-
-    try {
-      // Gọi AI API và chuyển đổi thành response stream
-      const result = await streamText({
-        model: openai.chat('gpt-4o-mini'),
-        messages: processedMessages
-      })
-
-      const response = result.toDataStreamResponse() as Response
-      const reader = response.body!.getReader()
-
-      // Biến theo dõi xem đã gửi hoàn thành chưa
-      let isFirstChunk = true
-
-      // Đọc từng chunk dữ liệu từ response AI
-      while (true) {
-        const { done, value } = await reader.read()
-
-        if (done) break
-
-        const chunk = new TextDecoder().decode(value)
-
-        // Nếu đây là chunk đầu tiên, gửi trạng thái typing
-        if (isFirstChunk && chunk.length > 0) {
-          isFirstChunk = false
-
-          // Gửi trạng thái đang soạn khi AI bắt đầu trả lời
-          const typingStatus = createStatusMessage('typing')
-          await writer.write(encoder.encode(`data: ${JSON.stringify(typingStatus)}\n\n`))
-
-          // Đợi một chút trước khi gửi trạng thái completed
-          setTimeout(async () => {
-            const completedStatus = createStatusMessage('completed')
-            await writer.write(encoder.encode(`data: ${JSON.stringify(completedStatus)}\n\n`))
-          }, 800)
-        }
-
-        // Chuyển tiếp dữ liệu từ AI về client
-        await writer.write(value)
-      }
-
-      // Đóng stream khi hoàn thành
-      await writer.close()
-
-      return new Response(stream.readable, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive'
-        }
-      })
-    } catch (error) {
-      // Xử lý lỗi khi gọi API AI
-      console.error('Error calling AI API:', error)
-
-      // Gửi thông báo lỗi
-      const errorMessage = createStatusMessage('error')
-      await writer.write(encoder.encode(`data: ${JSON.stringify(errorMessage)}\n\n`))
-      await writer.close()
-
-      return new Response(stream.readable, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          Connection: 'keep-alive'
-        }
-      })
-    }
+    return result.toDataStreamResponse()
   } catch (error) {
     console.error('Lỗi OpenAI:', error)
     return new Response(JSON.stringify({ error: 'Lỗi xử lý yêu cầu' }), {
