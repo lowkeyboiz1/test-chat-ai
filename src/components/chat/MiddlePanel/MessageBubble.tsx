@@ -668,26 +668,17 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       innerContainer: `flex w-full max-w-[90%] gap-2 lg:max-w-[80%] ${isUser ? 'flex-row-reverse' : ''}`,
       bubble: isUser
         ? 'rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 hover:shadow-lime-300/40'
-        : 'rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 hover:shadow-lime-300/40',
+        : `rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 ${hasTemplate ? 'w-full' : ''} hover:shadow-lime-300/40`,
       timestamp: `mt-1.5 text-xs ${isUser ? 'text-slate-500' : 'text-slate-500'}`
     }
-  }, [message.sender])
+  }, [message.sender, hasTemplate])
 
   return (
     <div className={messageClasses.container} role={message.sender === 'ai' ? 'status' : undefined}>
       <div className={messageClasses.innerContainer}>
-        {message.sender === 'ai' && (
-          <div className='relative mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-lime-300/70 bg-gradient-to-br from-lime-100 to-white shadow-lg shadow-lime-200/30 sm:h-10 sm:w-10'>
-            <div className='flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-lime-400 to-emerald-400 sm:h-9 sm:w-9'>
-              <Bug className='h-3.5 w-3.5 text-white sm:h-4 sm:w-4' />
-            </div>
-            {isMessageStreaming && <div className='absolute inset-0 animate-pulse rounded-full bg-lime-200/60'></div>}
-          </div>
-        )}
-
         {message.sender === 'user' ? (
           <pre className={cn(messageClasses.bubble, '!font-inter')}>
-            <div className='whitespace-pre-wrap'>{renderMarkdown(message.text)}</div>
+            <div className='w-full whitespace-pre-wrap'>{renderMarkdown(message.text)}</div>
             <div className={messageClasses.timestamp}>{formatTime(message.timestamp)}</div>
           </pre>
         ) : (

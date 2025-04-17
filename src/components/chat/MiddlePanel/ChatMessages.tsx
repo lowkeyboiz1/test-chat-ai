@@ -64,7 +64,7 @@ const STATUS_ICONS = {
 
 // Status messages in Vietnamese
 const STATUS_MESSAGES = {
-  submitted: 'Đang khởi động',
+  submitted: 'Đang suy luận',
   streaming: 'Đang soạn',
   thinking: 'Đang suy nghĩ',
   searching: 'Đang tìm kiếm',
@@ -78,7 +78,6 @@ export const ChatMessages = memo(function ChatMessages() {
   const [isTyping] = useAtom(isTypingAtom)
   const [chatStatus] = useAtom(chatStatusAtom)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const [fadeStatus, setFadeStatus] = useState(true)
 
   // Improved scrolling function
   const scrollToBottom = useCallback(() => {
@@ -108,7 +107,6 @@ export const ChatMessages = memo(function ChatMessages() {
   const statusFromTag = loadingMatch && loadingMatch[1] ? loadingMatch[1] : undefined
   const shouldShowTyping = isTyping || chatStatus === 'streaming' || chatStatus === 'submitted'
   const currentStatus = statusFromTag || chatStatus
-  console.log({ statusFromTag, chatStatus, currentStatus })
 
   // Get the appropriate icon for the current status
   const StatusIcon = STATUS_ICONS[currentStatus as keyof typeof STATUS_ICONS] || STATUS_ICONS.streaming
@@ -160,19 +158,19 @@ export const ChatMessages = memo(function ChatMessages() {
 
             {shouldShowTyping && (
               <div
-                className={`flex items-center space-x-2 rounded-lg border border-lime-200 bg-gradient-to-br ${getStatusColor(currentStatus)} p-3 shadow-md transition-opacity duration-200 ${fadeStatus ? 'opacity-100' : 'opacity-0'}`}
-                style={{ maxWidth: 'fit-content' }}
+                className={`flex items-center space-x-3 rounded-2xl border border-lime-300/70 bg-gradient-to-br ${getStatusColor(currentStatus)} p-3.5 shadow-lg transition-all duration-300`}
+                style={{ maxWidth: 'max-content' }}
               >
-                <div className='status-icon rounded-full bg-white/90 p-1'>
-                  <StatusIcon className='h-4 w-4 text-emerald-600' />
+                <div className='status-icon flex h-7 w-7 items-center justify-center rounded-full bg-white/95 p-1.5 shadow-inner'>
+                  <StatusIcon className='h-4 w-4 animate-pulse text-emerald-600' />
                 </div>
-                <div className='status-text text-sm font-medium text-white'>
+                <div className='status-text text-sm font-medium tracking-wide text-white drop-shadow-sm'>
                   {STATUS_MESSAGES[currentStatus as keyof typeof STATUS_MESSAGES] || STATUS_MESSAGES.streaming}
                 </div>
-                <div className='flex space-x-1'>
-                  <div className='typing-dot h-2 w-2 rounded-full bg-white'></div>
-                  <div className='typing-dot h-2 w-2 rounded-full bg-white'></div>
-                  <div className='typing-dot h-2 w-2 rounded-full bg-white'></div>
+                <div className='flex space-x-1.5 pl-1'>
+                  <div className='typing-dot h-2.5 w-2.5 rounded-full bg-white/90 shadow-sm'></div>
+                  <div className='typing-dot h-2.5 w-2.5 rounded-full bg-white/90 shadow-sm'></div>
+                  <div className='typing-dot h-2.5 w-2.5 rounded-full bg-white/90 shadow-sm'></div>
                 </div>
               </div>
             )}
