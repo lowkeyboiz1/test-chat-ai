@@ -75,6 +75,10 @@ export function useChatState() {
   const [, setChatStatus] = useAtom(chatStatusAtom)
   const [imageUpload, setImageUpload] = useAtom(imageUploadAtom)
 
+  // Check if we're in the test1 route
+  const isTestRoute = typeof window !== 'undefined' && window.location.pathname.includes('/test1')
+  const apiUrl = isTestRoute ? 'http://192.168.1.164:7000/api/ai/chat' : `${process.env.NEXT_PUBLIC_API_URL}/api/ai/chat`
+
   const {
     messages: aiMessages,
     handleInputChange,
@@ -83,7 +87,7 @@ export function useChatState() {
     error,
     status
   } = useAIChat({
-    api: `${process.env.NEXT_PUBLIC_API_URL}/api/ai/chat-template`,
+    api: apiUrl,
     streamProtocol: 'data'
     // initialMessages: [
     //   {

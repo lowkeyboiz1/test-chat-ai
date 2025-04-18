@@ -65,7 +65,7 @@ const STATUS_ICONS = {
 // Status messages in Vietnamese
 const STATUS_MESSAGES = {
   submitted: 'Đang suy luận',
-  streaming: 'Đang soạn',
+  streaming: 'Đang phân tích',
   thinking: 'Đang suy nghĩ',
   searching: 'Đang tìm kiếm',
   updating: 'Đang cập nhật',

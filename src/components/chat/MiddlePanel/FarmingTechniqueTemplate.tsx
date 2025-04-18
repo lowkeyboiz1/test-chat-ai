@@ -37,27 +37,6 @@ const FarmingTag = React.memo(({ label }: { label: string }) => (
 
 FarmingTag.displayName = 'FarmingTag'
 
-// Farming Stat component
-const FarmingStat = React.memo(({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) => (
-  <motion.div
-    initial={{ y: 5, opacity: 0 }}
-    animate={{ y: 0, opacity: 1 }}
-    transition={{ duration: 0.3 }}
-    className='group relative overflow-hidden rounded-lg border border-emerald-500/20 bg-emerald-950/40 px-2 py-1.5 backdrop-blur-sm hover:border-emerald-500/40 hover:bg-emerald-900/30 sm:space-x-2'
-  >
-    <div className='relative z-10 flex items-center space-x-1.5'>
-      <div className='rounded-full border border-emerald-500/30 bg-emerald-900/50 p-1'>{icon}</div>
-      <span className='text-xs text-emerald-100 sm:text-sm'>
-        <span className='mr-1 text-emerald-400/90'>{label}:</span>
-        {value}
-      </span>
-    </div>
-    <div className='absolute inset-0 translate-x-[-100%] bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent transition-transform duration-1000 group-hover:translate-x-[100%]'></div>
-  </motion.div>
-))
-
-FarmingStat.displayName = 'FarmingStat'
-
 const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ techniqueData, isLoading = false }) => {
   const [loaded, setLoaded] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
@@ -443,10 +422,6 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
                     </div>
                   </div>
                 </div>
-
-                <div className='flex items-center self-start sm:self-center'>
-                  <FarmingStat icon={<Calendar className='h-4 w-4 text-emerald-400/70' />} label='Thời gian' value={techniqueData?.growingDuration || 'N/A'} />
-                </div>
               </div>
             </div>
 
@@ -485,70 +460,10 @@ const FarmingTechniqueTemplate: React.FC<FarmingTechniqueTemplateProps> = ({ tec
                   </button>
                 ))}
               </div>
-
-              {/* Mobile overview visualization - Only shown on overview tab for desktop */}
-              {activeTab === 'overview' && (
-                <div className={`mt-4 px-6 pb-6 transition-all duration-300 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
-                  <div className='flex flex-col items-center justify-center'>
-                    <div className='relative mb-4'>
-                      <div
-                        className={`flex h-24 w-24 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-900/50 ${
-                          glowing ? 'shadow-lg shadow-emerald-400/30' : ''
-                        }`}
-                      >
-                        <TechniqueIcon icon={<Sprout className='h-14 w-14 text-emerald-400' />} size='large' />
-                        {glowing && (
-                          <>
-                            <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-emerald-400/20'></div>
-                            <div className='absolute -inset-1 animate-[ping_4s_ease-in-out_infinite] rounded-full border border-emerald-400/30'></div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className='text-center'>
-                      <div className='text-2xl font-bold text-emerald-100'>{techniqueData?.crop}</div>
-                      <div className='mt-2 text-lg text-emerald-300/90'>{techniqueData?.title}</div>
-                      <div className='mt-1 text-sm text-emerald-400/80'>{techniqueData?.growingDuration}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile current technique visualization - Only shown on mobile */}
-            <div className='relative z-10 w-full md:hidden'>
-              {activeTab === 'overview' && (
-                <div className={`p-5 transition-all duration-300 ${showDetails ? 'opacity-100' : 'opacity-0'}`}>
-                  <div className='flex flex-col items-center justify-center'>
-                    <div className='relative mb-4'>
-                      <div
-                        className={`flex h-24 w-24 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-900/50 ${
-                          glowing ? 'shadow-lg shadow-emerald-400/30' : ''
-                        }`}
-                      >
-                        <TechniqueIcon icon={<Sprout className='h-14 w-14 text-emerald-400' />} size='large' />
-                        {glowing && (
-                          <>
-                            <div className='absolute inset-0 animate-[pulse_2s_ease-in-out_infinite] rounded-full bg-emerald-400/20'></div>
-                            <div className='absolute -inset-1 animate-[ping_4s_ease-in-out_infinite] rounded-full border border-emerald-400/30'></div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className='text-center'>
-                      <div className='text-2xl font-bold text-emerald-100'>{techniqueData?.crop}</div>
-                      <div className='mt-2 text-lg text-emerald-300/90'>{techniqueData?.title}</div>
-                      <div className='mt-1 text-sm text-emerald-400/80'>{techniqueData?.growingDuration}</div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Main content area - Takes most of the space */}
-            <div className='scrollbar-thin scrollbar-track-emerald-950 scrollbar-thumb-emerald-700/50 min-h-[400px] w-full flex-grow overflow-y-auto p-4 pb-4 pb-20 md:col-span-2 md:p-5'>
+            <div className='scrollbar-thin scrollbar-track-emerald-950 scrollbar-thumb-emerald-700/50 min-h-[400px] w-full flex-grow overflow-y-auto p-4 pb-20 md:col-span-2 md:p-5'>
               <div ref={contentRef} className='w-full transition-all duration-500'>
                 {renderTabContent()}
               </div>
