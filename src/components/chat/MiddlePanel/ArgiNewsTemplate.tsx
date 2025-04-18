@@ -565,15 +565,20 @@ const ArgiNewsTemplate: React.FC<TArgiNewsTemplateProps> = ({ newsData, isLoadin
           </div>
 
           {/* Bottom mobile navigation - Only visible on mobile */}
-          <div className='fixed bottom-0 left-0 z-40 w-full border-t border-emerald-500/30 bg-emerald-950/95 backdrop-blur-md md:hidden'>
-            <div className='mx-auto flex items-center justify-around px-6 py-3.5'>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className='fixed bottom-0 left-0 z-40 w-full border-t border-emerald-500/30 bg-emerald-950/95 backdrop-blur-md md:hidden'
+          >
+            <div className='mx-auto flex items-center justify-around px-4 py-2'>
               {[
-                { id: 'allNews', icon: <Newspaper className='size-5 text-emerald-400' />, label: 'Tin tức' },
-                { id: 'market', icon: <BarChart2 className='size-5 text-emerald-400' />, label: 'Thị trường' }
+                { id: 'allNews', icon: <Newspaper className='h-5 w-5 text-emerald-400' />, label: 'Tin tức' },
+                { id: 'market', icon: <BarChart2 className='h-5 w-5 text-emerald-400' />, label: 'Thị trường' }
               ].map((tab) => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className='group relative flex flex-col items-center justify-center px-4 py-1'>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className='group relative flex flex-col items-center justify-center px-1.5'>
                   <div
-                    className={`relative mb-1 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${
+                    className={`relative mb-0.5 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-300 ${
                       activeTab === tab.id
                         ? 'border border-emerald-400/50 bg-emerald-900 shadow-lg shadow-emerald-500/20'
                         : 'border border-emerald-500/20 bg-emerald-950/70 hover:border-emerald-500/40 hover:bg-emerald-900/40'
@@ -582,10 +587,15 @@ const ArgiNewsTemplate: React.FC<TArgiNewsTemplateProps> = ({ newsData, isLoadin
                     <div className={`relative z-10 transition-all duration-300 ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110'}`}>
                       {tab.icon}
                     </div>
-                    {activeTab === tab.id && <div className='absolute inset-0 animate-pulse rounded-full bg-emerald-500/20'></div>}
+                    {activeTab === tab.id && (
+                      <>
+                        <div className='absolute inset-0 animate-pulse rounded-full bg-emerald-500/20'></div>
+                        <div className='absolute -inset-1 animate-ping rounded-full border border-emerald-400/30 opacity-75'></div>
+                      </>
+                    )}
                   </div>
                   <span
-                    className={`text-xs font-medium transition-colors duration-300 ${
+                    className={`text-[8px] font-medium transition-colors duration-300 ${
                       activeTab === tab.id ? 'text-emerald-300' : 'text-emerald-400/60 group-hover:text-emerald-300/80'
                     }`}
                   >
@@ -596,10 +606,10 @@ const ArgiNewsTemplate: React.FC<TArgiNewsTemplateProps> = ({ newsData, isLoadin
             </div>
 
             {/* Visual hint for interactivity */}
-            <div className='absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full border border-emerald-500/20 bg-emerald-950 px-2 text-[10px] text-emerald-400/80'>
+            <div className='absolute -top-2 left-1/2 -translate-x-1/2 rounded-full border border-emerald-500/20 bg-emerald-950 px-1.5 py-0.5 text-[8px] text-emerald-400/80'>
               chọn chế độ
             </div>
-          </div>
+          </motion.div>
 
           {/* Decorative elements */}
           <div
