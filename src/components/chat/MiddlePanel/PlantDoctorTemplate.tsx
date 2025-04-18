@@ -30,7 +30,6 @@ const SymptomTag = memo(({ symptom }: { symptom: string }) => (
     initial={{ scale: 0.9, opacity: 0 }}
     animate={{ scale: 1, opacity: 1 }}
     className='inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-950/60 px-2.5 py-1 text-xs font-medium text-emerald-300/90 shadow-sm shadow-emerald-500/10 backdrop-blur-sm'
-    whileHover={{ scale: 1.05, backgroundColor: 'rgba(16, 185, 129, 0.2)' }}
   >
     <Leaf className='mr-1 h-3 w-3 text-emerald-400' />
     {symptom}
@@ -45,7 +44,6 @@ const InfoCard = memo(({ title, icon, children, className }: { title: string; ic
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     className={cn('rounded-xl border border-emerald-500/20 bg-emerald-950/50 p-4 backdrop-blur-sm', className)}
-    whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.1)' }}
     transition={{ type: 'spring', stiffness: 300 }}
   >
     <div className='mb-3 flex items-center gap-2'>
@@ -64,7 +62,6 @@ const TreatmentMethod = memo(({ title, icon, items }: { title: string; icon: Rea
     initial={{ opacity: 0, y: 10 }}
     animate={{ opacity: 1, y: 0 }}
     className='rounded-lg border border-emerald-500/20 bg-emerald-950/40 p-3 shadow-sm'
-    whileHover={{ scale: 1.02, backgroundColor: 'rgba(16, 185, 129, 0.15)' }}
   >
     <div className='mb-2 flex items-center gap-2 text-sm font-medium text-emerald-400'>
       <div className='flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20'>{icon}</div>
@@ -234,7 +231,6 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
-          whileHover={{ scale: 1.05, backgroundColor: 'rgba(16, 185, 129, 0.2)' }}
         >
           {plantData.disease}
         </motion.div>
@@ -251,7 +247,6 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
         >
           <motion.div
             className='mb-5 rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-4 shadow-sm backdrop-blur-sm'
-            whileHover={{ y: -3, boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.15)' }}
             transition={{ type: 'spring', stiffness: 300 }}
           >
             <div className='mb-2 flex items-center space-x-1.5 text-xs font-medium text-emerald-400/70 uppercase'>
@@ -280,7 +275,6 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.3 + index * 0.1 }}
-                whileHover={{ x: 5 }}
               >
                 <div className='flex items-center space-x-2'>
                   {item.icon}
@@ -310,11 +304,7 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
 
         {/* Mobile recommendation panel (only visible on mobile) */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className='mb-4 block md:hidden'>
-          <motion.div
-            className='rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-4 shadow-sm backdrop-blur-sm'
-            whileHover={{ y: -3, boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.15)' }}
-            transition={{ type: 'spring', stiffness: 300 }}
-          >
+          <motion.div className='rounded-lg border border-emerald-500/20 bg-emerald-950/30 p-4 shadow-sm backdrop-blur-sm'>
             <div className='mb-2 flex items-center space-x-1.5 text-xs font-medium text-emerald-400/70 uppercase'>
               <AlertCircle className='h-3.5 w-3.5' />
               <span>Khuyến nghị</span>
@@ -360,7 +350,6 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          whileHover={{ x: 5 }}
                         >
                           <div className='mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-500/20'>
                             <div className='h-1.5 w-1.5 rounded-full bg-emerald-400'></div>
@@ -433,7 +422,6 @@ const PlantDoctorTemplate: React.FC<PlantDoctorTemplateProps> = ({ plantData, is
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          whileHover={{ x: 5 }}
                         >
                           <ShieldCheck className='mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-400' />
                           {item}
