@@ -1,3 +1,4 @@
+import { uploadImageServices } from '@/services/upload-image'
 import { TCropData, TLandPlot, TWeatherData } from '@/types'
 import { useChat as useAIChat } from '@ai-sdk/react'
 import { atom, useAtom } from 'jotai'
@@ -5,8 +6,6 @@ import { useEffect } from 'react'
 
 // Basic atoms
 export const inputValueAtom = atom('')
-export const isRecordingAtom = atom(false)
-export const transcriptAtom = atom('')
 export const isTypingAtom = atom(false)
 export const chatStatusAtom = atom<'submitted' | 'streaming' | 'ready' | 'error'>('ready')
 export const weatherAtom = atom<TWeatherData>({
@@ -22,9 +21,7 @@ export const selectedPlotAtom = atom<TLandPlot | null>(null)
 // Image upload atoms
 export interface ImageUpload {
   file: File | null
-  previewUrl: string
-  detectionResults: DetectionResult[] | null
-  isDetecting: boolean
+  url: string
 }
 
 export interface DetectionResult {
@@ -40,9 +37,12 @@ export interface DetectionResult {
 
 export const imageUploadAtom = atom<ImageUpload>({
   file: null,
-  previewUrl: '',
-  detectionResults: null,
-  isDetecting: false
+  url: ''
+})
+
+export const imageUploadTempAtom = atom<ImageUpload>({
+  file: null,
+  url: ''
 })
 
 // Internal AI message type from the SDK
@@ -50,6 +50,11 @@ interface AIMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
+  experimental_attachments?: {
+    url: string
+    name: string
+    contentType: string
+  }[]
 }
 
 // AI messages atom
@@ -58,22 +63,41 @@ export const aiMessagesAtom = atom<AIMessage[]>([])
 // Derived atom for transformed messages
 export const messagesAtom = atom((get) => {
   const aiMessages = get(aiMessagesAtom)
+
+  console.log('Derived messages atom getting aiMessages:', { aiMessages })
+
+  // Safety check to prevent empty messages array
+  if (!aiMessages || aiMessages.length === 0) {
+    console.log('Warning: aiMessages is empty, returning empty array')
+    return []
+  }
+
   return aiMessages.map((msg: AIMessage, index: number) => ({
     id: parseInt(msg.id) || index + 1,
     text: msg.content,
     sender: msg.role === 'assistant' ? 'ai' : 'user',
-    timestamp: new Date()
+    timestamp: new Date(),
+    attachments: msg.experimental_attachments,
+    parts: msg.experimental_attachments
+      ? [
+          { type: 'text', text: msg.content },
+          ...msg.experimental_attachments.map((attachment) => ({
+            type: 'image' as const,
+            imageUrl: attachment.url
+          }))
+        ]
+      : undefined
   }))
 })
 
 // Custom hook to use AI SDK with Jotai
 export function useChatState() {
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
-  const [isRecording, setIsRecording] = useAtom(isRecordingAtom)
   const [isTyping, setIsTyping] = useAtom(isTypingAtom)
   const [, setAiMessages] = useAtom(aiMessagesAtom)
   const [, setChatStatus] = useAtom(chatStatusAtom)
   const [imageUpload, setImageUpload] = useAtom(imageUploadAtom)
+  const [_, setImageUploadTemp] = useAtom(imageUploadTempAtom)
 
   // Check if we're in the test1 route
   const isTestRoute = typeof window !== 'undefined' && window.location.pathname.includes('/test1')
@@ -85,7 +109,8 @@ export function useChatState() {
     handleSubmit,
     isLoading,
     error,
-    status
+    status,
+    append
   } = useAIChat({
     api: apiUrl,
     streamProtocol: 'data'
@@ -112,104 +137,110 @@ export function useChatState() {
 
   // Sync AI SDK messages with Jotai
   useEffect(() => {
-    setAiMessages(aiMessages as AIMessage[])
+    // Only update if there are messages to sync
+    if (aiMessages && aiMessages.length > 0) {
+      console.log('Syncing messages from SDK:', aiMessages)
+      setAiMessages(aiMessages as AIMessage[])
+    }
   }, [aiMessages, setAiMessages])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (inputValue.trim() === '' || isLoading || isTyping) return
+
+    console.log('Before sending message:', { aiMessages, imageUpload })
+
+    if (imageUpload.file) {
+      // Save current messages to prevent them from being lost during append
+      const currentMessages = [...aiMessages]
+
+      setImageUploadTemp({
+        file: null,
+        url: ''
+      })
+
+      // Append the new message with image attachment
+      await append(
+        {
+          role: 'user',
+          content: inputValue
+        },
+        {
+          experimental_attachments: [
+            {
+              url: imageUpload.url,
+              name: imageUpload.file?.name,
+              contentType: imageUpload.file?.type
+            }
+          ]
+        }
+      )
+
+      // Log the messages after append to verify they're still there
+      console.log('After append with image:', { currentMessages, newMessages: aiMessages })
+
+      // Only clear the image upload state after successfully appending
+      setImageUpload({
+        file: null,
+        url: ''
+      })
+
+      return
+    }
+
     handleSubmit(new Event('submit'))
     setInputValue('')
   }
 
-  const toggleRecording = () => {
-    setIsRecording((prev: boolean) => {
-      const newValue = !prev
-      if (newValue) {
-        // Simulate voice recording
-        setTimeout(() => {
-          setIsRecording(false)
-        }, 3000)
-      }
-      return newValue
-    })
-  }
-
   // Handle image upload
-  const handleImageUpload = (file: File) => {
-    const previewUrl = URL.createObjectURL(file)
+  const handleImageUpload = async (file: File) => {
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const fileUrl = await uploadImageServices.uploadImage(formData)
 
-    setImageUpload({
-      file,
-      previewUrl,
-      detectionResults: null,
-      isDetecting: true
-    })
+      // Get image URL
+      const imageUrl = fileUrl?.urls?.find((url: string) => url.includes('thumb300')) || ''
 
-    // Create form data for API request
-    const formData = new FormData()
-    formData.append('image', file)
-
-    // Send the image to our API endpoint
-    fetch('/api/image-detection', {
-      method: 'POST',
-      body: formData
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok')
-        }
-        return response.json()
+      // Set loading state
+      setImageUpload({
+        file: file,
+        url: imageUrl
       })
-      .then((data) => {
-        // Convert API response to our DetectionResult format
-        const detectionResults: DetectionResult[] = data.detections.map(
-          (detection: { label: string; confidence: number; bbox?: { x: number; y: number; width: number; height: number } }) => ({
-            label: detection.label,
-            confidence: detection.confidence,
-            bbox: detection.bbox
-          })
-        )
-
-        setImageUpload((prev) => ({
-          ...prev,
-          detectionResults,
-          isDetecting: false
-        }))
-
-        // Add image detection result to chat
-        const detectionMessage = `Tôi đã phân tích hình ảnh của bạn và phát hiện:\n${detectionResults
-          .map((d) => `- ${d.label} (${Math.round(d.confidence * 100)}% xác suất)`)
-          .join('\n')}\n\n${data.analysis}`
-
-        handleInputChange({ target: { value: detectionMessage } } as React.ChangeEvent<HTMLInputElement>)
-        handleSubmit(new Event('submit'))
+      setImageUploadTemp({
+        file: file,
+        url: imageUrl
       })
-      .catch((error) => {
-        console.error('Error processing image:', error)
-        setImageUpload((prev) => ({
-          ...prev,
-          isDetecting: false
-        }))
 
-        // Add error message to chat
-        const errorMessage = 'Xin lỗi, tôi không thể phân tích hình ảnh của bạn. Vui lòng thử lại sau.'
-        handleInputChange({ target: { value: errorMessage } } as React.ChangeEvent<HTMLInputElement>)
-        handleSubmit(new Event('submit'))
-      })
+      // Important: Don't reset messages here - keep existing messages
+      // This is critical to not lose the existing messages
+      console.log('Image upload complete, current messages:', aiMessages)
+
+      // Reset input value after sending
+      setInputValue('')
+    } catch (error) {
+      console.error('Error processing image:', error)
+
+      const errorMessage = 'Xin lỗi, tôi không thể phân tích hình ảnh của bạn. Vui lòng thử lại sau.'
+      handleInputChange({ target: { value: errorMessage } } as React.ChangeEvent<HTMLInputElement>)
+      handleSubmit(new Event('submit'))
+    }
   }
 
   // Clear uploaded image
   const clearImage = () => {
-    if (imageUpload.previewUrl) {
-      URL.revokeObjectURL(imageUpload.previewUrl)
-    }
-
     setImageUpload({
       file: null,
-      previewUrl: '',
-      detectionResults: null,
-      isDetecting: false
+      url: ''
     })
+    setImageUploadTemp({
+      file: null,
+      url: ''
+    })
+  }
+
+  // Add a function to delete the uploaded image
+  const deleteImage = () => {
+    clearImage() // Clear the image and reset the URLs
   }
 
   return {
@@ -217,14 +248,13 @@ export function useChatState() {
     inputValue,
     setInputValue,
     isTyping,
-    isRecording,
     handleSendMessage,
     isLoading,
-    toggleRecording,
     error,
     imageUpload,
     handleImageUpload,
     clearImage,
+    deleteImage,
     status
   }
 }

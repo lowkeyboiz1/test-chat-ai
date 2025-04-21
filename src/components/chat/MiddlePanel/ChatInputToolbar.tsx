@@ -4,9 +4,10 @@ import React, { memo, useCallback, useRef } from 'react'
 import { Send, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAtom } from 'jotai'
-import { inputValueAtom, useChatState } from '@/atoms/chatAtoms'
+import { inputValueAtom, useChatState, imageUploadAtom, imageUploadTempAtom } from '@/atoms/chatAtoms'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import WhisperRecorder from './WhisperRecorder'
+import ImagePreview from './ImagePreview'
 
 interface ChatInputToolbarProps {
   onFocusInput: () => void
@@ -14,6 +15,7 @@ interface ChatInputToolbarProps {
 
 export const ChatInputToolbar = memo(function ChatInputToolbar({ onFocusInput }: ChatInputToolbarProps) {
   const [inputValue, setInputValue] = useAtom(inputValueAtom)
+  const [imageUploadTemp] = useAtom(imageUploadTempAtom)
   const { handleSendMessage, isTyping, handleImageUpload } = useChatState()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -48,13 +50,18 @@ export const ChatInputToolbar = memo(function ChatInputToolbar({ onFocusInput }:
 
   // Handle file input change
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = e.target.files
       if (files && files.length > 0) {
         const file = files[0]
         // Check if file is an image
         if (file.type.startsWith('image/')) {
-          handleImageUpload(file)
+          try {
+            // Gọi handleImageUpload với base64Url
+            handleImageUpload(file)
+          } catch (error) {
+            console.error('Error processing image:', error)
+          }
         } else {
           // Could display an error message for non-image files
           console.error('Only image files are supported')
@@ -65,7 +72,7 @@ export const ChatInputToolbar = memo(function ChatInputToolbar({ onFocusInput }:
         }
       }
     },
-    [handleImageUpload]
+    [inputValue, setInputValue]
   )
 
   // Trigger file input click
@@ -77,6 +84,8 @@ export const ChatInputToolbar = memo(function ChatInputToolbar({ onFocusInput }:
 
   return (
     <>
+      {imageUploadTemp.url && <ImagePreview url={imageUploadTemp.url} />}
+
       <div className='relative flex items-center gap-1.5 transition-opacity duration-200' aria-label='Chat toolbar'>
         <input type='file' ref={fileInputRef} onChange={handleFileChange} accept='image/*' className='hidden' aria-label='Upload image' />
 

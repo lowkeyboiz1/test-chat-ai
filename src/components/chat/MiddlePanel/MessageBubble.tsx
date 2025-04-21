@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils'
 import { MessageBubbleProps, MessageClasses, TemplateData } from '@/types/templates'
 import { formatTime } from '@/utils/formatters'
 import { useAtom } from 'jotai'
-import { Bug, User } from 'lucide-react'
+import { User } from 'lucide-react'
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import ArgiNewsTemplate from './ArgiNewsTemplate'
+import MessageAttachment from './MessageAttachment'
 import PlantDoctorTemplate from './PlantDoctorTemplate'
 import StatusTemplate from './StatusTemplate'
 import WeatherTemplate from './WeatherTemplate'
@@ -390,17 +391,6 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
 
     const isPartial = hasTemplateTag || (hasJsonAfterTag && hasUnbalancedBraces)
 
-    if (isPartial) {
-      console.log('Detected partial template:', {
-        text: text.substring(0, 100),
-        hasTemplateTag,
-        hasUnbalancedBraces,
-        openBraces,
-        closeBraces,
-        hasJsonAfterTag
-      })
-    }
-
     return isPartial
   }, [])
 
@@ -451,16 +441,6 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const hasPartial = checkForPartialTemplate(message.text) || potentialJsonContent
     setHasPartialTemplate(hasPartial)
 
-    // If we detect a template tag opening, but no closing tag, consider it as rendering
-    if (hasPartial) {
-      setIsRenderingTemplate(true)
-      console.log('Currently rendering template...', {
-        text: message.text.substring(0, 100),
-        hasJSON: message.text.includes('{'),
-        potentialJsonContent: potentialJsonContent
-      })
-    }
-
     // Clean message text - also remove any raw JSON that might be from a template being built
     let cleanedText = message.text
 
@@ -493,33 +473,6 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     const hasAnyTemplateData = weatherData || agriPriceData || farmingTechniqueData || plantDoctorData || argiNewsData
 
     // If we have complete template data, mark rendering as complete
-    if (hasAnyTemplateData) {
-      if (isRenderingTemplate) {
-        console.log('Template rendering complete!', {
-          template: weatherData
-            ? 'weather'
-            : agriPriceData
-              ? 'agriPrice'
-              : farmingTechniqueData
-                ? 'farmingTechnique'
-                : plantDoctorData
-                  ? 'plantDoctor'
-                  : argiNewsData
-                    ? 'argiNews'
-                    : 'unknown'
-        })
-      }
-      setIsRenderingTemplate(false)
-    }
-
-    console.log('Processing message:', {
-      hasAnyTemplateData,
-      loadingType,
-      isRenderingTemplate: hasPartial,
-      weatherData: weatherData !== null,
-      hasPartial,
-      potentialJsonContent
-    })
 
     // Determine if we should show loading indicator or template
     let shouldShowLoading = false
@@ -591,27 +544,6 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
     setDisplayText(cleanedText)
   }, [message.text, message.sender, checkForPartialTemplate, processTemplateData, processLoadingTag, isRenderingTemplate, isMessageStreaming])
 
-  // Effect to detect when streaming ends and show templates
-  useEffect(() => {
-    if (!isMessageStreaming && hasPartialTemplate && !showTemplate) {
-      // When streaming ends and we have template data
-      console.log('Streaming ended, checking templates for display')
-
-      const hasTemplateData =
-        templateData.weather !== null ||
-        templateData.agriPrice !== null ||
-        templateData.farmingTechnique !== null ||
-        templateData.plantDoctor !== null ||
-        templateData.argiNews !== null
-
-      if (hasTemplateData) {
-        console.log('Template data available, showing template')
-        setShowTemplate(true)
-        setIsRenderingTemplate(false)
-      }
-    }
-  }, [isMessageStreaming, hasPartialTemplate, showTemplate, templateData])
-
   // Effect to detect changes in message content and handle transition from loading to template
   useEffect(() => {
     // If we have a complete template data in the current message, clear loading state
@@ -622,20 +554,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       templateData.plantDoctor !== null ||
       templateData.argiNews !== null
 
-    // Debug information
-    console.log('Message changed:', {
-      hasCompleteTemplate,
-      hasLoading: templateData.loading !== null,
-      showTemplate,
-      isRenderingTemplate,
-      streaming: isMessageStreaming,
-      weather: templateData.weather !== null,
-      loading: templateData.loading
-    })
-
     if (hasCompleteTemplate && templateData.loading !== null) {
       // Clear loading and show template when we have both loading and template data
-      console.log('Transitioning from loading to template view')
       setTemplateData((prev) => ({
         ...prev,
         loading: null
@@ -679,6 +599,12 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         {message.sender === 'user' ? (
           <pre className={cn(messageClasses.bubble, '!font-inter')}>
             <div className='w-full whitespace-pre-wrap'>{renderMarkdown(message.text)}</div>
+
+            {/* Hiển thị ảnh đính kèm từ người dùng */}
+            {message.attachments?.map((attachment, index) => (
+              <MessageAttachment key={index} url={attachment.url} name={attachment.name} contentType={attachment.contentType} />
+            ))}
+
             <div className={messageClasses.timestamp}>{formatTime(message.timestamp)}</div>
           </pre>
         ) : (

@@ -15,7 +15,9 @@ const eslintConfig = [
     rules: {
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
-      'react-hooks/exhaustive-deps': 'warn'
+      'react-hooks/exhaustive-deps': 'warn',
+      'ban-ts-comment': 'off',
+      '@typescript-eslint/ban-ts-comment': 'off'
     },
     languageOptions: {
       parserOptions: {

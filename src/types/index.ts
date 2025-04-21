@@ -4,6 +4,16 @@ export type TMessage = {
   sender: 'user' | 'ai'
   timestamp: Date
   weatherData?: any
+  attachments?: {
+    url: string
+    name: string
+    contentType: string
+  }[]
+  parts?: {
+    type: 'text' | 'image'
+    text?: string
+    imageUrl?: string
+  }[]
 }
 
 export type TWeatherData = {

@@ -125,6 +125,7 @@ export const ChatMessages = memo(function ChatMessages() {
     return colors[status as keyof typeof colors] || 'from-lime-400 to-emerald-400'
   }
 
+  console.log({ messages })
   return (
     <>
       <style jsx global>
