@@ -1,5 +1,5 @@
 'use client'
-import { chatStatusAtom, isTypingAtom } from '@/atoms/chatAtoms'
+import { chatStatusAtom } from '@/atoms/chatAtoms'
 import AgriPriceTemplate from '@/components/chat/MiddlePanel/AgriPriceTemplate'
 import FarmingTechniqueTemplate from '@/components/chat/MiddlePanel/FarmingTechniqueTemplate'
 import TextToSpeech from '@/components/chat/TextToSpeech'
@@ -351,9 +351,7 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   })
 
   const [displayText, setDisplayText] = useState('')
-  const [isTyping] = useAtom(isTypingAtom)
   const [chatStatus] = useAtom(chatStatusAtom)
-  const [hasPartialTemplate, setHasPartialTemplate] = useState(false)
   const [showTemplate, setShowTemplate] = useState(false)
   const [isRenderingTemplate, setIsRenderingTemplate] = useState(false)
 
@@ -427,7 +425,6 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
         status: null,
         loading: null
       })
-      setHasPartialTemplate(false)
       setDisplayText(message.text)
       setShowTemplate(false)
       setIsRenderingTemplate(false)
@@ -439,7 +436,6 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
 
     // Check for template syntax or potential JSON content
     const hasPartial = checkForPartialTemplate(message.text) || potentialJsonContent
-    setHasPartialTemplate(hasPartial)
 
     // Clean message text - also remove any raw JSON that might be from a template being built
     let cleanedText = message.text
@@ -568,17 +564,16 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
   }, [message.text, templateData, showTemplate, isRenderingTemplate, isMessageStreaming])
 
   // Memoize derived values to prevent unnecessary recalculations
-  const { hasTemplate, shouldHideText } = useMemo(() => {
+  const { hasTemplate } = useMemo(() => {
     const hasTemplateValue = Boolean(
       templateData.weather || templateData.agriPrice || templateData.farmingTechnique || templateData.plantDoctor || templateData.argiNews
     )
 
     // Hide text if showing a template during streaming
     return {
-      hasTemplate: hasTemplateValue,
-      shouldHideText: hasTemplateValue && isMessageStreaming && isRenderingTemplate
+      hasTemplate: hasTemplateValue
     }
-  }, [templateData, isMessageStreaming, isRenderingTemplate])
+  }, [templateData])
 
   // Memoize message styling classes
   const messageClasses = useMemo<MessageClasses>(() => {
@@ -587,8 +582,8 @@ export const MessageBubble = memo(function MessageBubble({ message }: MessageBub
       container: `flex ${isUser ? 'justify-end' : 'justify-start'}`,
       innerContainer: `flex w-full max-w-[90%] gap-2 lg:max-w-[80%] ${isUser ? 'flex-row-reverse' : ''}`,
       bubble: isUser
-        ? 'rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 hover:shadow-lime-300/40'
-        : `rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 ${hasTemplate ? 'w-full' : ''} hover:shadow-lime-300/40`,
+        ? 'rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 hover:shadow-lime-300/40 space-y-2'
+        : `rounded-2xl border border-lime-300/60 bg-gradient-to-br from-lime-100/95 via-white/95 to-emerald-100/95 p-3.5 text-slate-700 shadow-lg shadow-lime-200/30 transition-all duration-300 hover:border-lime-400/70 ${hasTemplate ? 'w-full' : ''} hover:shadow-lime-300/40 space-y-2`,
       timestamp: `mt-1.5 text-xs ${isUser ? 'text-slate-500' : 'text-slate-500'}`
     }
   }, [message.sender, hasTemplate])
